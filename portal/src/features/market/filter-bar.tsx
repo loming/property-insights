@@ -51,8 +51,7 @@ function formatSpan(range: RangeFilter, [low, high]: number[]): string {
 
 function RangeControl({ range, bounds }: { range: RangeFilter; bounds: Bounds }) {
   const { filters, setFilters } = useMarketFilters();
-  const id = useId();
-  const clamp = (value: number) => Math.min(bounds.max, Math.max(bounds.min, value));
+  const clamp =(value: number) => Math.min(bounds.max, Math.max(bounds.min, value));
   const current: [number, number] = [
     clamp(filters[range.minParam] ?? bounds.min),
     clamp(filters[range.maxParam] ?? bounds.max),
@@ -85,13 +84,12 @@ function RangeControl({ range, bounds }: { range: RangeFilter; bounds: Bounds })
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2 text-sm">
-        <span id={`${id}-label`} className="font-medium">
+        <span className="font-medium">
           {range.label}
         </span>
         <span className="shrink-0 text-muted-foreground tabular-nums">{formatSpan(range, value)}</span>
       </div>
       <Slider
-        aria-labelledby={`${id}-label`}
         min={bounds.min}
         max={bounds.max}
         step={range.step}
