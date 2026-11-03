@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Task 1 is complete, and so is App 1's backend** (`estimator-api`), both in both sets behind the gateway. App 2's backend and the portal land next; until the portal arrives, the site root opens Task 1's Swagger UI.
+> **Status: Task 1 and both Task 2 backends are complete** (`ml-api`, `estimator-api`, `market-api`), in both sets behind the gateway. The portal lands next; until it arrives, the site root opens Task 1's Swagger UI.
 
 ## Quick start
 
@@ -31,7 +31,7 @@ Then open:
 | Task 1 Swagger (`ml-api`) | http://localhost:8130/ml-api/docs |
 | Portal (Task 2, coming) | http://localhost:8130/ |
 | App 1 backend Swagger (`estimator-api`) | http://localhost:8130/estimator-api/docs |
-| App 2 backend Swagger (`market-api`, coming) | http://localhost:8130/market-api/swagger-ui.html |
+| App 2 backend Swagger (`market-api`) | http://localhost:8130/market-api/swagger-ui.html |
 
 For the Ridge set, add `--profile ridge` (or set `COMPOSE_PROFILES=ridge` in `.env`) and use `ridge.localhost` instead of `localhost`. To change the port, copy `.env.example` to `.env` and set `GATEWAY_PORT`.
 
@@ -92,6 +92,40 @@ The history and comparison keep working while `ml-api` is down.
 
 Each set has its own history: the Ridge set's `estimator-api-ridge` calls `ml-api-ridge` and keeps its own volume.
 
+## App 2 backend: the market API (`market-api`)
+
+Spring Boot 3.4.4 on Java 21 (records, pattern-matching `switch`, virtual threads), with Caffeine caching and springdoc. Spring Boot 3.4 is out of open-source support; the brief pins it, and production would move to a supported line (4.1.x) or run 3.4 under commercial support.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/v1/market/summary` | Count, price mean, median, quartiles, min and max, and mean price per sq ft |
+| `GET /api/v1/market/segments?by=` | Per segment (`bedrooms`, `bathrooms`, `decade`, `school_band`, `distance_band`): count, mean and median price, price per sq ft |
+| `GET /api/v1/market/segments/medians?by=` | Each segment's median home, rounded to values the model accepts: the what-if baselines |
+| `GET /api/v1/market/distribution?metric=&bins=` | Histogram of price or price per sq ft |
+| `GET /api/v1/market/correlations` | Each feature's correlation with price |
+| `GET /api/v1/market/properties?sort=&page=&size=` | The rows, sorted and paged, with price per sq ft |
+| `GET /api/v1/market/filter-options` | Ranges and values for building the filter UI |
+| `POST /api/v1/market/what-if` | A baseline home and a changed one, priced by the Task 1 model in one call: delta, delta %, warnings |
+| `POST /api/v1/market/what-if/sensitivity` | One feature swept over 2–50 steps in one model call |
+| `GET /api/v1/market/model-info` | The model's metadata, cached, so App 2 never depends on App 1's backend |
+| `GET /api/v1/market/export/csv`, `/export/pdf` | The filtered view as CSV or a PDF report |
+
+Every statistics endpoint and export takes the same snake_case segment filters: `bedrooms` (repeatable), `min_`/`max_` `price`, `sqft`, `year`, `bathrooms`, `school_rating` and `distance`.
+
+**Caching.**
+- **Statistics:** cached with no expiry, since the dataset never changes while the app runs, and keyed by the immutable filter record.
+- **What-if:** cached for 10 minutes, keyed by the request and the model version, so a retrained model never serves old prices. Failures are never cached.
+- **HTTP:** statistics responses carry `Cache-Control: max-age=300` and ETags. Exports are `no-store`.
+- **Evidence:** cache statistics are at `/actuator/caches` and `/actuator/metrics/cache.gets`.
+
+**Errors** are problem+json in the same shape as the Python services. Validation is a 400 with snake_case field names. The model's failures map as in `estimator-api` (422, 502, 503), and a home the model can't price is named in the error.
+
+**Build and test without installing a JDK**, using Maven inside the JDK image (the volume keeps Maven's downloads):
+
+```bash
+docker run --rm -v "${PWD}:/repo" -v market-api-m2:/root/.m2 -w /repo/market-api eclipse-temurin:21.0.13_9-jdk-resolute sh mvnw -B verify
+```
+
 ## Repository layout
 
 ```text
@@ -99,7 +133,7 @@ Each set has its own history: the Ridge set's `estimator-api-ridge` calls `ml-ap
 ├── gateway/         # nginx: one published port, routes to every service
 ├── ml-api/          # Task 1: FastAPI + scikit-learn
 ├── estimator-api/   # Task 2, App 1 backend: FastAPI + SQLite
-├── market-api/      # Task 2, App 2 backend: Spring Boot 3.4.4 / Java 21       (Phase 3)
+├── market-api/      # Task 2, App 2 backend: Spring Boot 3.4.4 / Java 21
 ├── portal/          # Task 2: Next.js App Router portal                        (Phases 4–6)
 └── docs/            # architecture, decisions (ADRs), demo script, hosting
 ```
