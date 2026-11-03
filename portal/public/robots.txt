@@ -1,0 +1,3 @@
+# A take-home demo, not a public site.
+User-agent: *
+Disallow: /

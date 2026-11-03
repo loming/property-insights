@@ -1,0 +1,12 @@
+# Windows build output must never reach the Linux image: node_modules holds native binaries
+# such as @next/swc-win32-x64-msvc (doc 02, A10).
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+.env*
+Dockerfile
+.dockerignore
