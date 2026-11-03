@@ -1,0 +1,10 @@
+# Keep Windows build output and local state out of the Linux image (doc 02, A10).
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+*.db
+*.db-*
+.env*
