@@ -77,10 +77,27 @@ jobs:
           uv export --frozen --no-dev --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
           uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements.txt" --disable-pip --strict
 
+  market-api:
+    name: market-api (build and tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: market-api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # The tests read ../data and ../ml-api (the feature contract) from the checkout.
+      - run: ./mvnw -B verify
+
   compose:
     name: Compose (both sets through the gateway)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Gateway config is valid
@@ -115,6 +132,20 @@ jobs:
           curl -fsS "$gw/estimator-api/api/v1/estimates" | grep -q '"total":1'
           curl -fsS "$gw/estimator-api/docs" | grep -q "/estimator-api/openapi.json"
           test "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$gw/estimator-api/api/v1/estimates")" = 403
+      - name: Each set's market-api answers, what-if uses its own model, Swagger keeps the prefix
+        run: |
+          set -eu
+          gw=http://127.0.0.1:8130
+          curl -fsS "$gw/market-api/api/v1/market/summary" | grep -q '"count":50'
+          curl -fsS "$gw/market-api/api/v1/market/segments?by=bedrooms" | grep -q '"segment":"3 bed","count":22'
+          wi='{"baseline":{"square_footage":1550,"bedrooms":3,"bathrooms":2,"year_built":1997,"lot_size":6800,"distance_to_city_center":4.1,"school_rating":7.6},"changes":{"square_footage":2050}}'
+          # +500 sq ft: plain linear regression lowers the price, Ridge raises it.
+          curl -fsS -H "Content-Type: application/json" -d "$wi" "$gw/market-api/api/v1/market/what-if" \
+            | grep -q '"delta":-51458.2'
+          curl -fsS -H "Host: hsbc-ridge.loming.com" -H "Content-Type: application/json" -d "$wi" \
+            "$gw/market-api/api/v1/market/what-if" | grep -q '"model_version":"ridge-'
+          curl -fsS "$gw/market-api/v3/api-docs/swagger-config" | grep -q '"url":"/market-api/v3/api-docs"'
+          curl -fsS -o /dev/null "$gw/market-api/api/v1/market/export/pdf"
       - name: Logs
         if: failure()
         run: docker compose --profile ridge logs
