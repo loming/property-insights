@@ -1,0 +1,4 @@
+# Test overrides, layered over src/main/resources/application.yml (Boot also reads classpath:/config/).
+market:
+  data: file:../data/house_prices.csv
+  ml-api-url: http://ml-api.test
