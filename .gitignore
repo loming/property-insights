@@ -38,6 +38,8 @@ next-env.d.ts
 coverage/
 playwright-report/
 test-results/
+# The demo's recorded walkthrough (portal/scripts/record-walkthrough.mjs)
+/walkthrough/
 
 # Java
 target/
