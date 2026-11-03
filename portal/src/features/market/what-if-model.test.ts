@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { MarketModelInfo, PropertyRow, SegmentMedian } from "@/lib/api/market";
+import { ApiError } from "@/lib/api/problem";
 
-import { buildBaselines, changesFrom, effectsOf, pickBaseline, sweepSteps } from "./what-if-model";
+import { buildBaselines, changesFrom, describeModelError, effectsOf, pickBaseline, sweepSteps } from "./what-if-model";
 
 const typical: SegmentMedian = {
   segment: "3 bed",
@@ -73,6 +74,20 @@ describe("effectsOf", () => {
       ["square_footage", -38_595],
       ["school_rating", 21_062],
     ]);
+  });
+});
+
+describe("describeModelError", () => {
+  const problem = (status: number) => new ApiError({ type: "x", title: "x", status, detail: "Predicted price is not positive" }, "market");
+
+  it("tells a refused home, a busy gateway and a missing model apart", () => {
+    expect(describeModelError(problem(422))).toEqual({
+      title: "The model can't price this home",
+      detail: "Predicted price is not positive",
+    });
+    expect(describeModelError(problem(429)).title).toBe("Too many requests at once");
+    expect(describeModelError(problem(503)).title).toBe("The model isn't answering right now");
+    expect(describeModelError(new Error("boom")).title).toBe("The model gave no usable answer");
   });
 });
 

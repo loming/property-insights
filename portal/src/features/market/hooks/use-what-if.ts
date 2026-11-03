@@ -12,9 +12,12 @@ import { changesFrom } from "../what-if-model";
 
 const DEBOUNCE_MS = 300;
 
-/** A model that's down (503) or confused (502) may answer a moment later; a refused input won't. */
+/**
+ * A model that's down (503) or confused (502), or the gateway's rate limit (429), may answer a moment
+ * later; a refused input won't.
+ */
 function retryServerErrors(failures: number, error: Error): boolean {
-  return failures < 1 && error instanceof ApiError && error.status >= 500;
+  return failures < 1 && error instanceof ApiError && (error.status >= 500 || error.status === 429);
 }
 
 /**

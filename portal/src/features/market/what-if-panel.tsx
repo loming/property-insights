@@ -13,14 +13,21 @@ import { Slider } from "@/components/ui/slider";
 import { useFormatters } from "@/hooks/use-formatters";
 import { useUrlState } from "@/hooks/use-url-state";
 import type { HomeFeatures, MarketModelInfo, ModelWarning } from "@/lib/api/market";
-import { ApiError } from "@/lib/api/problem";
 import { FEATURE_BY_NAME, FEATURES, type FeatureName, formatFeatureValue } from "@/lib/features";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { useWhatIf } from "./hooks/use-what-if";
 import { SensitivityChart } from "./sensitivity-chart";
-import { type Baseline, changesFrom, effectsOf, type FeatureRanges, PER_UNIT, SLIDER_STEPS } from "./what-if-model";
+import {
+  type Baseline,
+  changesFrom,
+  describeModelError,
+  effectsOf,
+  type FeatureRanges,
+  PER_UNIT,
+  SLIDER_STEPS,
+} from "./what-if-model";
 
 function withUnit(name: FeatureName, value: number): string {
   const unit = FEATURE_BY_NAME[name].unit;
@@ -43,20 +50,18 @@ function FeatureSlider({
   onChange: (value: number) => void;
 }) {
   const fmt = useFormatters();
-  const id = useId();
   const feature = FEATURE_BY_NAME[name];
   const changed = Math.abs(value - baseline) > 1e-9;
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <span id={`${id}-label`} className="flex items-center gap-2 text-sm font-medium">
+        <span className="flex items-center gap-2 text-sm font-medium">
           {feature.label}
           {changed && <Badge variant="secondary">Changed</Badge>}
         </span>
         <span className="text-sm tabular-nums">{withUnit(name, value)}</span>
       </div>
       <Slider
-        aria-labelledby={`${id}-label`}
         min={range.min}
         max={range.max}
         step={SLIDER_STEPS[name]}
@@ -115,21 +120,6 @@ function Warnings({ warnings }: { warnings: ModelWarning[] }) {
   );
 }
 
-function errorText(error: Error): { title: string; detail: string } {
-  if (error instanceof ApiError) {
-    if (error.status === 422) {
-      return { title: "The model can't price this home", detail: error.problem.detail ?? "Try values closer to the baseline." };
-    }
-    if (error.status === 0 || error.status === 503) {
-      return {
-        title: "The model isn't answering right now",
-        detail: "The dashboard and the data table don't need it and keep working. Try again in a moment.",
-      };
-    }
-  }
-  return { title: "The model gave no usable answer", detail: "Try again in a moment." };
-}
-
 function ResultCard({
   baseline,
   scenario,
@@ -171,9 +161,9 @@ function ResultCard({
       {error ? (
         <Alert variant="destructive">
           <TriangleAlert aria-hidden="true" />
-          <AlertTitle>{errorText(error).title}</AlertTitle>
+          <AlertTitle>{describeModelError(error).title}</AlertTitle>
           <AlertDescription>
-            <p>{errorText(error).detail}</p>
+            <p>{describeModelError(error).detail}</p>
             <Button className="mt-3" size="sm" onClick={() => void refetch()}>
               Try again
             </Button>

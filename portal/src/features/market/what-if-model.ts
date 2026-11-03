@@ -1,5 +1,6 @@
 /** The what-if tool's baselines, changes and the sum behind a price change (M-3), apart from the markup. */
 import type { HomeFeatures, MarketModelInfo, PropertyRow, SegmentMedian } from "@/lib/api/market";
+import { ApiError } from "@/lib/api/problem";
 import { FEATURES, type FeatureName } from "@/lib/features";
 import { formatNumber, formatPrice } from "@/lib/format";
 
@@ -89,6 +90,25 @@ export function effectsOf(changes: Partial<HomeFeatures>, baseline: HomeFeatures
     const from = baseline[f.name];
     return [{ name: f.name, from, to, perUnit, effect: (to - from) * perUnit }];
   });
+}
+
+/** What to tell someone whose what-if call failed, by the problem's status. */
+export function describeModelError(error: Error): { title: string; detail: string } {
+  if (error instanceof ApiError) {
+    if (error.status === 422) {
+      return { title: "The model can't price this home", detail: error.problem.detail ?? "Try values closer to the baseline." };
+    }
+    if (error.status === 429) {
+      return { title: "Too many requests at once", detail: "Wait a moment, then try again." };
+    }
+    if (error.status === 0 || error.status === 503) {
+      return {
+        title: "The model isn't answering right now",
+        detail: "The dashboard and the data table don't need it and keep working. Try again in a moment.",
+      };
+    }
+  }
+  return { title: "The model gave no usable answer", detail: "Try again in a moment." };
 }
 
 /** Points for a sensitivity sweep: one per value a slider can take, up to 21. */

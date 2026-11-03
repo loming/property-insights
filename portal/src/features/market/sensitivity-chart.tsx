@@ -6,6 +6,7 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 
 import { ChartCard } from "@/components/chart-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 import { useSensitivity } from "./hooks/use-what-if";
 import { niceTicks } from "./stats";
-import { type FeatureRanges, SLIDER_STEPS, sweepSteps } from "./what-if-model";
+import { describeModelError, type FeatureRanges, SLIDER_STEPS, sweepSteps } from "./what-if-model";
 
 type Point = { value: number; price: number; warned: boolean };
 
@@ -63,7 +64,7 @@ export function SensitivityChart({
   const [feature, setFeature] = useState<FeatureName>(initialFeature);
   const id = useId();
   const range = ranges[feature];
-  const { data, error, isFetching } = useSensitivity(scenario, feature, range, sweepSteps(feature, range));
+  const { data, error, isFetching, refetch } = useSensitivity(scenario, feature, range, sweepSteps(feature, range));
   const label = FEATURE_BY_NAME[feature].label;
 
   function choose(next: FeatureName) {
@@ -136,8 +137,13 @@ export function SensitivityChart({
       {error ? (
         <Alert variant="destructive">
           <TriangleAlert aria-hidden="true" />
-          <AlertTitle>The sensitivity line didn&apos;t load</AlertTitle>
-          <AlertDescription>The model isn&apos;t answering right now. The price above still updates when it does.</AlertDescription>
+          <AlertTitle>The line didn&apos;t load: {describeModelError(error).title.toLowerCase()}</AlertTitle>
+          <AlertDescription>
+            <p>{describeModelError(error).detail}</p>
+            <Button className="mt-3" size="sm" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          </AlertDescription>
         </Alert>
       ) : points.length === 0 ? (
         <Skeleton className="h-[280px] w-full" />
