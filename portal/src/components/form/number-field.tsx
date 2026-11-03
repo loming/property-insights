@@ -16,6 +16,7 @@ export function NumberField({
   step,
   min,
   max,
+  readOnly,
   registration,
 }: {
   id: string;
@@ -26,6 +27,7 @@ export function NumberField({
   step: number | "any";
   min: number;
   max: number;
+  readOnly?: boolean;
   registration: UseFormRegisterReturn;
 }) {
   const hintId = `${id}-hint`;
@@ -44,6 +46,7 @@ export function NumberField({
         step={step}
         min={min}
         max={max}
+        readOnly={readOnly}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
         {...registration}

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFormatters } from "@/hooks/use-formatters";
+import { useHydrated } from "@/hooks/use-hydrated";
 import type { Estimate } from "@/lib/api/estimator";
 import { EXAMPLE_FEATURES, FEATURES, formatFeatureValue } from "@/lib/features";
 
@@ -40,6 +41,9 @@ export function EstimateForm({
   showContributions: boolean;
 }) {
   const fmt = useFormatters();
+  // Until hydration the fields are read-only and the button off: React Hook Form writes its default
+  // values when it attaches, wiping anything typed before, and the bare form would submit as a GET.
+  const hydrated = useHydrated();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<Estimate | null>(null);
   const [failure, setFailure] = useState<FormFailure | null>(null);
@@ -102,6 +106,7 @@ export function EstimateForm({
             id={fieldId("label")}
             placeholder="e.g. Flat on Elm St"
             maxLength={80}
+            readOnly={!hydrated}
             aria-invalid={errors.label ? true : undefined}
             aria-describedby={errors.label ? `${fieldId("label")}-error` : undefined}
             {...form.register("label")}
@@ -131,6 +136,7 @@ export function EstimateForm({
                 step={f.step}
                 min={f.min}
                 max={f.max}
+                readOnly={!hydrated}
                 registration={form.register(`features.${f.name}`, { valueAsNumber: true })}
               />
             );
@@ -149,7 +155,7 @@ export function EstimateForm({
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={pending}>
+          <Button type="submit" size="lg" disabled={pending || !hydrated}>
             {pending && <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
             {pending ? "Estimating…" : "Estimate price"}
           </Button>
