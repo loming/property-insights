@@ -1,0 +1,49 @@
+name: property-insights
+
+# The brief set runs by default. `--profile ridge` (or COMPOSE_PROFILES=ridge in .env) adds the
+# Ridge set: the same images, with ml-api trained as Ridge. Only the gateway publishes a port.
+
+services:
+  ml-api:
+    build:
+      context: ./ml-api
+      additional_contexts:
+        data: ./data
+      args:
+        MODEL_KIND: ols
+    image: property-insights/ml-api:ols
+    environment:
+      # The gateway serves this service under /ml-api/ and strips the prefix.
+      UVICORN_ROOT_PATH: /ml-api
+      LOG_LEVEL: INFO
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  ml-api-ridge:
+    extends: ml-api
+    profiles: [ridge]
+    build:
+      args:
+        MODEL_KIND: ridge
+    image: property-insights/ml-api:ridge
+
+  gateway:
+    image: nginxinc/nginx-unprivileged:1.30.6-alpine
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8130}:8080"
+    volumes:
+      - ./gateway/conf.d:/etc/nginx/conf.d:ro
+      - ./gateway/snippets:/etc/nginx/snippets:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/gateway-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
