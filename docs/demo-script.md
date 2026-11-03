@@ -75,7 +75,8 @@ docker compose stop ml-api
 ```
 
 - **The brief set's estimator** says the pricing service isn't responding, and saves nothing. Its history and comparison still work.
-- **The brief set's market dashboard and table** keep working: they don't need the model. Its what-if page says the model isn't answering.
+- **The brief set's market dashboard and table** keep working: they don't need the model.
+- **Its what-if page** still shows prices `market-api` has already worked out: what-if results are cached for 10 minutes. Move a slider to a new value, and the page says the model isn't answering.
 - **The Ridge set** is untouched.
 
 ```bash
@@ -105,4 +106,4 @@ Delete the demo's estimates from both sets' History pages.
 | The tunnel or the network is down | `localhost:8130` and `ridge.localhost:8130` on the demo PC |
 | A container is unhealthy | `docker compose up -d --wait`, then `docker compose logs <service>` |
 | Too many requests (429) | Wait two seconds. The limits are per visitor and generous |
-| The PC itself fails | The recorded walkthrough, and the screenshots in `docs/images/` |
+| The PC itself fails | The recorded walkthrough: a silent, captioned run through steps 3–6, made by [`portal/scripts/record-walkthrough.mjs`](../portal/scripts/record-walkthrough.mjs). Re-record it after any change to the UI. |
