@@ -49,20 +49,24 @@ jobs:
             fi
           done
 
-  ml-api:
-    name: ml-api (lint, tests, dependency audit)
+  python:
+    name: ${{ matrix.service }} (lint, tests, dependency audit)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ml-api, estimator-api]
     defaults:
       run:
-        working-directory: ml-api
+        working-directory: ${{ matrix.service }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "0.11.28"
           enable-cache: true
-          cache-dependency-glob: ml-api/uv.lock
+          cache-dependency-glob: ${{ matrix.service }}/uv.lock
       - run: uv sync --locked
       # The tools live in the project environment, so they run through uv.
       - run: uv run ruff check
@@ -99,6 +103,18 @@ jobs:
           curl -fsS "$gw/ml-api/docs" | grep -q "/ml-api/openapi.json"
           curl -fsS "$gw/ml-api/openapi.json" | grep -q '"servers":\[{"url":"/ml-api"}\]'
           test "$(curl -s -o /dev/null -w '%{http_code}' "$gw/nope")" = 404
+      - name: Each set's estimator saves with its own model, in its own history
+        run: |
+          set -eu
+          gw=http://127.0.0.1:8130
+          est='{"label":"CI","features":{"square_footage":1550,"bedrooms":3,"bathrooms":2,"year_built":1997,"lot_size":6800,"distance_to_city_center":4.1,"school_rating":7.6}}'
+          curl -fsS -H "Content-Type: application/json" -d "$est" "$gw/estimator-api/api/v1/estimates" \
+            | grep -q '"model_version":"ols-'
+          curl -fsS -H "Host: hsbc-ridge.loming.com" -H "Content-Type: application/json" -d "$est" \
+            "$gw/estimator-api/api/v1/estimates" | grep -q '"model_version":"ridge-'
+          curl -fsS "$gw/estimator-api/api/v1/estimates" | grep -q '"total":1'
+          curl -fsS "$gw/estimator-api/docs" | grep -q "/estimator-api/openapi.json"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$gw/estimator-api/api/v1/estimates")" = 403
       - name: Logs
         if: failure()
         run: docker compose --profile ridge logs
