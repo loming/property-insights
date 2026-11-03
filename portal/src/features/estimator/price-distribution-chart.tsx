@@ -60,7 +60,7 @@ export function PriceDistributionChart({ price, distribution }: { price: number;
       }
     >
       <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={bands} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <BarChart accessibilityLayer={false} data={bands} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
           <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis allowDecimals={false} width={28} tick={{ fontSize: 11 }} />

@@ -62,7 +62,12 @@ export function ContributionChart({
       }
     >
       <ResponsiveContainer width="100%" height={rows.length * 34 + 30}>
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, bottom: 4, left: 8 }}>
+        <BarChart
+          accessibilityLayer={false}
+          data={rows}
+          layout="vertical"
+          margin={{ top: 4, right: 56, bottom: 4, left: 8 }}
+        >
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
           <XAxis type="number" tickFormatter={fmt.signedPrice} tick={{ fontSize: 11 }} />
           <YAxis type="category" dataKey="feature" width={150} tick={{ fontSize: 12 }} />

@@ -1,8 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-// The Ridge set, through the same gateway: browsers resolve *.localhost to this machine.
-const RIDGE_URL = process.env.E2E_RIDGE_URL ?? "http://ridge.localhost:8130";
+import { expectNoAxeViolations, RIDGE_URL } from "./support";
 
 test.describe("the shell", () => {
   test("overview links both apps and reports the services", async ({ page }) => {
@@ -59,7 +57,7 @@ test.describe("the shell", () => {
 
   test("fits a 375 px phone without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
-    for (const path of ["/", "/estimator", "/market"]) {
+    for (const path of ["/", "/estimator", "/estimator/history", "/market"]) {
       await page.goto(path);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, path).toBeLessThanOrEqual(0);
@@ -68,14 +66,19 @@ test.describe("the shell", () => {
 });
 
 test.describe("accessibility (axe, WCAG 2.2 AA)", () => {
-  for (const path of ["/", "/estimator", "/estimator/history", "/market", "/market/what-if", "/no-such-page"]) {
+  for (const path of [
+    "/",
+    "/estimator",
+    "/estimator/history",
+    "/estimator/compare",
+    "/market",
+    "/market/what-if",
+    "/no-such-page",
+  ]) {
     test(path, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-        .analyze();
-      expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length})`)).toEqual([]);
+      await expectNoAxeViolations(page);
     });
   }
 });

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 
 /**
  * A chart as a figure with a caption and a table alternative. Screen readers always get the table (the
- * SVG is hidden from them); sighted users can switch to it too (WCAG 1.1.1, 1.4.1).
+ * SVG is hidden from them); sighted users can switch to it too (WCAG 1.1.1, 1.4.1). Charts inside set
+ * accessibilityLayer={false}: Recharts would otherwise make the hidden SVG focusable.
  */
 export function ChartCard({
   title,

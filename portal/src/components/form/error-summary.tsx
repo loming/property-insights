@@ -13,10 +13,11 @@ export function ErrorSummary({ errors }: { errors: SummaryError[] }) {
       <p className="font-medium text-destructive">
         {errors.length === 1 ? "One field needs attention:" : `${errors.length} fields need attention:`}
       </p>
-      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+      <ul className="mt-1 list-disc pl-5">
         {errors.map((error) => (
           <li key={error.id}>
-            <a href={`#${error.id}`} className="underline underline-offset-4 hover:no-underline">
+            {/* inline-block with padding: a 24 px target (WCAG 2.5.8). */}
+            <a href={`#${error.id}`} className="inline-block py-0.5 underline underline-offset-4 hover:no-underline">
               {error.label}: {error.message}
             </a>
           </li>

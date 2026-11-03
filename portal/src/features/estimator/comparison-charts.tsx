@@ -95,7 +95,12 @@ export function ComparePriceChart({ estimates }: { estimates: Estimate[] }) {
       }
     >
       <ResponsiveContainer width="100%" height={rows.length * 48 + 36}>
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 56, bottom: 4, left: 8 }}>
+        <BarChart
+          accessibilityLayer={false}
+          data={rows}
+          layout="vertical"
+          margin={{ top: 4, right: 56, bottom: 4, left: 8 }}
+        >
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
           <XAxis type="number" tickFormatter={fmt.shortPrice} tick={{ fontSize: 11 }} />
           <YAxis type="category" dataKey="label" width={170} tick={{ fontSize: 12 }} />
@@ -196,7 +201,13 @@ export function CompareFeaturesChart({
         ))}
       </ul>
       <ResponsiveContainer width="100%" height={rows.length * (estimates.length * 10 + 18) + 36}>
-        <BarChart data={rows} layout="vertical" barGap={2} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+        <BarChart
+          accessibilityLayer={false}
+          data={rows}
+          layout="vertical"
+          barGap={2}
+          margin={{ top: 4, right: 16, bottom: 4, left: 8 }}
+        >
           <CartesianGrid horizontal={false} strokeDasharray="3 3" />
           <XAxis
             type="number"
