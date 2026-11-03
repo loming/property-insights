@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Task 1, both Task 2 backends and App 1 (the estimator) are complete**, in both sets behind the gateway. App 2's full screens come next (the market dashboard, data table and what-if).
+> **Status: Task 1 and both Task 2 apps (the estimator and the market analysis) are complete**, with their backends, in both sets behind the gateway.
 
 ## Quick start
 
@@ -136,12 +136,19 @@ Next.js 16.4 (App Router, React 19.3) with Tailwind 4 and shadcn/ui on Radix. On
 - **History** (`/estimator/history`). Every estimate is saved by `estimator-api`, newest first, ten a page. Delete asks for confirmation in the row and removes the row at once (React's `useOptimistic`), putting it back with a message if the delete fails. Each estimate has its own page.
 - **Compare** (`/estimator/compare?ids=…`). A Compare toggle on each estimate adds it to a tray of up to four, kept in `localStorage` (a Zustand store). The comparison puts the estimates in columns, marks the highest and lowest value in every row that differs, and charts the prices and each feature's place in the training range. The ids are in the URL, so a comparison can be bookmarked; estimates deleted since are reported and dropped from the tray.
 
+**App 2, the Property Market Analysis:**
+
+- **Filters.** Bedrooms and six ranges (price, living area, bathrooms, year built, school rating, distance), as sliders bounded by the data. They live in the URL under the same names market-api takes, so a link shares the view and the server applies it; the Dashboard and Data tabs carry them across. A change keeps focus on the control, shows the new values at once (`useOptimistic`) and dims the results under a progress bar until the server's page arrives.
+- **Dashboard** (`/market`). Headline figures, the median price by bedrooms, bathrooms, decade, school rating or distance, the spread of prices (or prices per sq ft), and price against living area for every home, with bedroom counts marked by colour and shape. Each widget fetches its own data in a Server Component and streams in behind its own Suspense and error boundary (`catchError`), so one failure shows a retry for that widget alone.
+- **Data** (`/market/data`). The filtered homes in a table: any column sorts from its header (`aria-sort`, kept in the URL), a search box matches any value, and pages hold 10, 25 or 50. On a phone the table scrolls inside its box with the home number pinned. Export downloads market-api's CSV, or a PDF report with the summary and segments, of the filtered homes in the table's order, through a Route Handler that streams the file; the search box doesn't narrow exports, and the menu says so.
+- **What-if** (`/market/what-if`). Start from a typical home (each bedroom segment's median) or any home in the data, move the sliders, and see the model's price and the change, "holding the other features constant". Requests are debounced and cached by their inputs (TanStack Query). Both models are linear, so the change is broken down as change × coefficient, and the figures add up; the leverage warning appears when a combination leaves the data. On the brief set, it says why more living area can lower the price. The Ridge set adds a line of the price across one feature's range, from one batch call. With the model down, the page still opens and says the model isn't answering, while the dashboard and table, which don't need it, keep working.
+
 **Throughout:**
 
 - **Independent apps.** Server code reaches each backend directly over the compose network, never through the gateway. App 1's code may only use `estimator-api`, App 2's only `market-api`, and an ESLint rule rejects cross-app imports. With either backend stopped, that app shows its own error panel (with "Try again", which re-fetches) while the shell and the other app keep working; the browser tests check this.
 - **Data loading.** Pages load in Server Components through one server-only fetch wrapper. It waits for the request (so nothing is prerendered during `docker build`), sends a request ID, times out, and turns any failure into the backend's problem+json. Caching is chosen per data type: model info for an hour, market aggregates for 5 minutes, live status never.
 - **One image, two sets.** The set (`APP_VARIANT`) and the backend URLs are server-only runtime variables, validated on first use, so the same image serves the brief set and the Ridge set; the header shows which, with a link to the other.
-- **Accessibility.** WCAG 2.2 AA is the target: skip link, landmarks, `aria-current` navigation, visible focus with 3:1 contrast, colour never the only signal, focus kept clear of the sticky header, and page transitions (React's `<ViewTransition>`) that switch off under `prefers-reduced-motion`. Every chart is a captioned figure with a table view, and its colours (Okabe-Ito) stay distinct under colour blindness. axe runs on every page in CI, and again along the estimator's flows.
+- **Accessibility.** WCAG 2.2 AA is the target: skip link, landmarks, `aria-current` navigation, visible focus with 3:1 contrast, colour never the only signal, focus kept clear of the sticky header, and page transitions (React's `<ViewTransition>`) that switch off under `prefers-reduced-motion`. Every chart is a captioned figure with a table view, and its colours (Okabe-Ito) stay distinct under colour blindness. axe runs on every page in CI, and again along both apps' flows.
 
 **Develop and test** (Node 24.22.2, see `.nvmrc`), with the stack running for the browser tests:
 
@@ -155,7 +162,7 @@ npx playwright install chromium
 npm run e2e
 ```
 
-For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway (`http://localhost:8130/estimator-api` and `http://localhost:8130/market-api`).
+For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway (`http://localhost:8130/estimator-api` and `http://localhost:8130/market-api`); for the Ridge set, use `ridge.localhost:8130` and set `APP_VARIANT=ridge`. Through the gateway, the dev server's calls share its rate limit of 10 per second, which the containers' direct calls don't.
 
 ## Repository layout
 
