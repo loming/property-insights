@@ -1,36 +1,12 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-import { expectNoAxeViolations, RIDGE_URL } from "./support";
+import { deleteTaggedEstimates, EXAMPLE, expectNoAxeViolations, RIDGE_URL, saveEstimate } from "./support";
 
-const EXAMPLE = {
-  square_footage: 1550,
-  bedrooms: 3,
-  bathrooms: 2,
-  year_built: 1997,
-  lot_size: 6800,
-  distance_to_city_center: 4.1,
-  school_rating: 7.6,
-};
-
-// Every estimate this run saves is labelled with a unique tag, and afterwards every estimate with that
-// tag is deleted from both sets, even when a test failed half-way, so the demo's history stays clean.
+// Every estimate this run saves carries this tag, and is deleted afterwards.
 const RUN = `e2e-${Date.now().toString(36)}`;
 
-async function saveEstimate(request: APIRequestContext, label: string, features = EXAMPLE) {
-  const response = await request.post("/estimator-api/api/v1/estimates", { data: { label, features } });
-  expect(response.status()).toBe(201);
-  const { id } = (await response.json()) as { id: string };
-  return id;
-}
-
 test.afterAll(async ({ request }) => {
-  for (const base of ["", RIDGE_URL]) {
-    const response = await request.get(`${base}/estimator-api/api/v1/estimates?limit=100`);
-    const { items } = (await response.json()) as { items: { id: string; label: string | null }[] };
-    for (const { id } of items.filter((item) => item.label?.startsWith(`${RUN} `))) {
-      await request.delete(`${base}/estimator-api/api/v1/estimates/${id}`);
-    }
-  }
+  await deleteTaggedEstimates(request, RUN);
 });
 
 async function submitForm(page: Page) {
