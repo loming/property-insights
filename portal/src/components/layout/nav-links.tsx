@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { PAGE_NAVIGATION } from "@/lib/transitions";
 import { cn } from "@/lib/utils";
 
 export type NavItem = {
@@ -48,6 +49,7 @@ export function NavLinks({
             <li key={item.href}>
               <Link
                 href={hrefFor(item, search)}
+                transitionTypes={[PAGE_NAVIGATION]}
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-8 items-center rounded-md px-3 text-sm font-medium transition-colors",

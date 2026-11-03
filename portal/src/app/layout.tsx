@@ -5,7 +5,7 @@ import { ViewTransition } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { SkipLink } from "@/components/layout/skip-link";
 import { Providers } from "@/components/providers";
-import { URL_STATE_TRANSITION } from "@/lib/transitions";
+import { PAGE_NAVIGATION } from "@/lib/transitions";
 
 import "./globals.css";
 
@@ -25,11 +25,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <AppHeader />
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none sm:px-6">
-            {/* Route changes are transitions, so this crossfades between pages (globals.css); a filter
-                change re-renders the page in place, without the fade. The one wrapping element takes the
-                transition's name: a streamed section's fallback and content, swapped directly under the
-                ViewTransition, would both take it, and the browser aborts on the duplicate. */}
-            <ViewTransition default={{ [URL_STATE_TRANSITION]: "none", default: "page" }}>
+            {/* Navigating from the nav bars crossfades the page (globals.css); nothing else animates (see
+                lib/transitions.ts). The one wrapping element takes the transition's name: children swapped
+                directly under the ViewTransition could take it twice, and the browser aborts on that. */}
+            <ViewTransition default={{ [PAGE_NAVIGATION]: "page", default: "none" }}>
               <div>{children}</div>
             </ViewTransition>
           </main>

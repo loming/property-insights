@@ -1,9 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { addTransitionType, useCallback, useTransition } from "react";
-
-import { URL_STATE_TRANSITION } from "@/lib/transitions";
+import { useCallback, useTransition } from "react";
 
 /**
  * State kept in the URL (filters, sort, the chosen baseline), so a link shares it and a reload keeps it.
@@ -31,7 +29,6 @@ export function useUrlState() {
   const replace = useCallback(
     (params: URLSearchParams, optimistic?: () => void) => {
       startTransition(() => {
-        addTransitionType(URL_STATE_TRANSITION);
         optimistic?.();
         router.replace(href(params), { scroll: false });
       });
@@ -41,7 +38,8 @@ export function useUrlState() {
 
   const replaceLocal = useCallback(
     (params: URLSearchParams) => {
-      window.history.replaceState(window.history.state, "", href(params));
+      // null, as Next documents: passing its own history state back makes it skip the useSearchParams sync.
+      window.history.replaceState(null, "", href(params));
     },
     [href],
   );
