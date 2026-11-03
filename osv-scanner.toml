@@ -1,0 +1,32 @@
+# OSV-Scanner's configuration for the CI scan of every built image (doc 02, D1). A finding that isn't
+# set aside here fails the build; each one that is says why it doesn't apply and when to look again.
+
+# Operating-system packages come with the pinned base images. Most have no fixed package yet, and the
+# fix is a refreshed base image rather than anything in this repository, so they don't fail the build.
+# To list them, run the scan without --config.
+[[PackageOverrides]]
+ecosystem = "Debian"
+vulnerability.ignore = true
+reason = "OS package of python:3.12.16-slim-trixie (ml-api, estimator-api): fixed by refreshing the base image"
+
+[[PackageOverrides]]
+ecosystem = "Ubuntu"
+vulnerability.ignore = true
+reason = "OS package of eclipse-temurin:21.0.13_9-jre-resolute (market-api): fixed by refreshing the base image"
+
+[[PackageOverrides]]
+ecosystem = "Alpine"
+vulnerability.ignore = true
+reason = "OS package of node:24.22.2-alpine (portal) or nginx-unprivileged:1.30.6-alpine (gateway): fixed by refreshing the base image"
+
+# Spring Framework 6.2 is out of open-source support, and 6.2.19 (pom.xml) is its last public release.
+# These two are fixed only in 7.0, which needs Spring Boot 4, and market-api uses neither feature.
+[[IgnoredVulns]]
+id = "GHSA-j9f9-w8pj-32f8"
+ignoreUntil = 2027-05-01
+reason = "CVE-2026-47890, server-sent event streams corrupted while rendering fragments: market-api serves JSON, CSV and PDF, with no SSE or view fragments"
+
+[[IgnoredVulns]]
+id = "GHSA-pc63-qcmh-9cmg"
+ignoreUntil = 2027-05-01
+reason = "CVE-2026-47884, improper path limitation in XsltView: market-api has no XSLT views"

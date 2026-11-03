@@ -118,7 +118,7 @@ jobs:
       - run: npm audit --omit=dev
 
   compose:
-    name: Compose (both sets through the gateway)
+    name: Compose (both sets through the gateway, image scan)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -192,6 +192,23 @@ jobs:
             docker compose start "$svc-api"
             docker compose up -d --wait "$svc-api"
           done
+      # Every image as built, so the scan sees what ships: the Python wheels, the Spring Boot jar's
+      # dependencies, the portal's standalone node_modules and the OS packages. osv-scanner.toml lists
+      # what's set aside and why (doc 02, D1).
+      - name: The built images have no known vulnerable dependencies (OSV-Scanner)
+        run: |
+          mkdir -p "$RUNNER_TEMP/images"
+          status=0
+          for image in $(docker compose --profile ridge config --images | sort -u); do
+            archive="$(echo "$image" | tr '/:' '--').tar"
+            docker save -o "$RUNNER_TEMP/images/$archive" "$image"
+            echo "::group::$image"
+            docker run --rm -v "$RUNNER_TEMP/images:/images:ro" -v "$PWD/osv-scanner.toml:/osv-scanner.toml:ro" \
+              ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
+              scan image --config /osv-scanner.toml --archive "/images/$archive" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
       - name: Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
