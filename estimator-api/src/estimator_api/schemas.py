@@ -27,7 +27,9 @@ HouseFeatures = create_model(
 )
 
 # Free text shown back to every visitor: trimmed, capped, single line.
-Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80, pattern=r"^[^\r\n\t]*$")]
+Label = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80, pattern=r"^[^\r\n\t]*$")
+]
 
 
 class EstimateCreate(BaseModel):
@@ -80,7 +82,7 @@ class Comparison(BaseModel):
     estimates: list[Estimate] = Field(description="In the order the ids were given; missing ids are skipped")
     missing_ids: list[UUID] = Field(description="Requested ids that don't exist (deleted, or never did)")
     ranges: dict[str, Range] = Field(
-        description="Min and max across the found estimates, per feature and for predicted_price, for highlighting"
+        description="Min and max across the found estimates, per feature and for predicted_price"
     )
 
 

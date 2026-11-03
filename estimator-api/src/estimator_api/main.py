@@ -29,7 +29,9 @@ unreachable or timed-out model is 503.
 """
 
 
-def create_app(settings: Settings | None = None, ml_transport: httpx2.AsyncBaseTransport | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, ml_transport: httpx2.AsyncBaseTransport | None = None
+) -> FastAPI:
     """`ml_transport` lets tests stub ml-api with httpx2.MockTransport."""
     settings = settings or get_settings()
 

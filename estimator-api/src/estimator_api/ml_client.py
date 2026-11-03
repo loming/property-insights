@@ -62,7 +62,9 @@ class MlClient:
         await self._client.aclose()
 
     async def predict(self, features: dict[str, float], request_id: str | None) -> dict[str, Any]:
-        response = await self._request("POST", "/predict", request_id, params={"explain": "true"}, json=features)
+        response = await self._request(
+            "POST", "/predict", request_id, params={"explain": "true"}, json=features
+        )
         if response.status_code == 200:
             body = self._json(response)
             if not isinstance(body.get("predicted_price"), int | float) or "model_version" not in body:
@@ -71,7 +73,9 @@ class MlClient:
         if response.status_code == 422:
             problem = self._json(response)
             if problem.get("type") == "outside-model-domain":
-                raise ModelRejectedInputError("outside-model-domain", problem.get("detail", "Outside the model's domain"))
+                raise ModelRejectedInputError(
+                    "outside-model-domain", problem.get("detail", "Outside the model's domain")
+                )
             if problem.get("type") == "validation-error":
                 errors = [
                     {"field": f"features.{e.get('field', '')}", "message": e.get("message", "")}
@@ -92,7 +96,9 @@ class MlClient:
         except httpx2.HTTPError:
             return False
 
-    async def _request(self, method: str, path: str, request_id: str | None, **kwargs: Any) -> httpx2.Response:
+    async def _request(
+        self, method: str, path: str, request_id: str | None, **kwargs: Any
+    ) -> httpx2.Response:
         headers = {"X-Request-ID": request_id} if request_id else {}
         try:
             return await self._client.request(method, path, headers=headers, **kwargs)

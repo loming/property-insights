@@ -48,7 +48,9 @@ class EstimateService:
                 created_at=now,
             )
         except ValidationError as exc:
-            raise ModelResponseError("ml-api returned warnings or contributions in an unexpected shape") from exc
+            raise ModelResponseError(
+                "ml-api returned warnings or contributions in an unexpected shape"
+            ) from exc
         await self.repository.add(
             EstimateRow(
                 id=str(estimate.id),

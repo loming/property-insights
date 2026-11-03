@@ -67,7 +67,9 @@ async def list_estimates(
 )
 async def compare_estimates(
     service: Service,
-    ids: Annotated[list[UUID], Query(min_length=2, max_length=4, description="Repeat the parameter: ?ids=a&ids=b")],
+    ids: Annotated[
+        list[UUID], Query(min_length=2, max_length=4, description="Repeat the parameter: ?ids=a&ids=b")
+    ],
 ) -> Comparison:
     """Returns the estimates found, in the order given, with `missing_ids` for any that no longer exist,
     and each feature's min and max across them so a UI can highlight the differences."""

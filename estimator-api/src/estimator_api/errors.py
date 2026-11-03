@@ -89,7 +89,9 @@ async def _ml(request: Request, exc: MlApiError) -> JSONResponse:
 
 async def _unhandled(request: Request, exc: Exception) -> JSONResponse:
     log.exception("unhandled error")
-    return problem(request, 500, "internal-error", "Something went wrong; quote the request_id when reporting it")
+    return problem(
+        request, 500, "internal-error", "Something went wrong; quote the request_id when reporting it"
+    )
 
 
 class BodyLimitMiddleware:
