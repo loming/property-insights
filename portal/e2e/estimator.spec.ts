@@ -133,9 +133,15 @@ test.describe("history and comparison", () => {
     await expect(page.getByRole("figure", { name: "How the homes differ" })).toBeVisible();
     await expectNoAxeViolations(page);
 
+    // Loaded at phone width, as a phone would (charts resize a moment after a viewport change).
     await page.setViewportSize({ width: 375, height: 800 });
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(overflow, "the compare page fits a phone; its table scrolls on its own").toBeLessThanOrEqual(0);
+    await page.reload();
+    await expect(page.getByRole("figure", { name: "How the homes differ" })).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+        message: "the compare page fits a phone; its table scrolls on its own",
+      })
+      .toBeLessThanOrEqual(0);
     await page.setViewportSize({ width: 1280, height: 720 });
     const compareUrl = page.url();
 

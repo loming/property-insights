@@ -8,7 +8,8 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        // /90 as in Button: primary/80 leaves white text at 4.3:1.
+        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/90",
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:

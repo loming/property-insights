@@ -4,8 +4,17 @@ import { expect, type Page } from "@playwright/test";
 // The Ridge set, through the same gateway: browsers resolve *.localhost to this machine.
 export const RIDGE_URL = process.env.E2E_RIDGE_URL ?? "http://ridge.localhost:8130";
 
-/** Fails with the list of WCAG 2.2 AA violations axe finds on the page as it is now. */
+/**
+ * Fails with the list of WCAG 2.2 AA violations axe finds on the page. It waits for running transitions
+ * first (a button fading in from disabled is half its final contrast mid-way); endless animations, such
+ * as a spinner, are left alone.
+ */
 export async function expectNoAxeViolations(page: Page) {
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every((animation) => animation.playState !== "running" || animation.effect?.getTiming().iterations === Infinity),
+  );
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
