@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
-import { EXAMPLE_FEATURES, FEATURES } from "@/lib/features";
+import { EXAMPLE_FEATURES, FEATURES, formatFeatureValue } from "@/lib/features";
 
 import type { ActionResult } from "./action-result";
 import { createEstimateAction } from "./actions";
@@ -117,7 +117,9 @@ export function EstimateForm({
           <legend className="sr-only">Property features</legend>
           {FEATURES.map((f) => {
             const range = trainingRanges[f.name];
-            const hint = range ? `${f.hint}. Training data: ${fmt.number(range.min)}–${fmt.number(range.max)}` : f.hint;
+            const hint = range
+              ? `${f.hint}. Training data: ${formatFeatureValue(f.name, range.min)}–${formatFeatureValue(f.name, range.max)}`
+              : f.hint;
             return (
               <NumberField
                 key={f.name}

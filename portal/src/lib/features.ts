@@ -2,6 +2,8 @@
  * The model's input features as the portal shows them. Limits mirror ml-api's features.py, which
  * features.test.ts checks; labels and hints are written for people filling in a form.
  */
+import { formatNumber } from "./format";
+
 export const CURRENT_YEAR = new Date().getFullYear();
 
 export type FeatureName =
@@ -41,3 +43,8 @@ export const FEATURES: readonly Feature[] = [
 export const FEATURE_BY_NAME = Object.fromEntries(FEATURES.map((f) => [f.name, f])) as Record<FeatureName, Feature>;
 
 export const EXAMPLE_FEATURES = Object.fromEntries(FEATURES.map((f) => [f.name, f.example])) as Record<FeatureName, number>;
+
+/** A feature's value as text. Years have no thousands separator: 1997, not 1,997. */
+export function formatFeatureValue(name: string, value: number): string {
+  return name === "year_built" ? String(value) : formatNumber(value);
+}

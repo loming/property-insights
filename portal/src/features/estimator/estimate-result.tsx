@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
-import { FEATURES, FEATURE_BY_NAME, type FeatureName } from "@/lib/features";
+import { FEATURES, FEATURE_BY_NAME, type FeatureName, formatFeatureValue } from "@/lib/features";
 
 import { ContributionChart } from "./contribution-chart";
 import { type PriceDistribution, PriceDistributionChart } from "./price-distribution-chart";
@@ -73,7 +73,7 @@ export function EstimateResult({
                     {f.label}
                   </th>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {fmt.number(estimate.features[f.name])}
+                    {formatFeatureValue(f.name, estimate.features[f.name])}
                     {f.unit && <span className="text-muted-foreground"> {f.unit}</span>}
                   </td>
                 </tr>

@@ -1,5 +1,6 @@
 import { StatTile } from "@/components/stat-tile";
 import type { ModelInfo } from "@/lib/api/estimator";
+import { formatFeatureValue } from "@/lib/features";
 import { formatNumber, formatPrice } from "@/lib/format";
 
 /** The served model at a glance: what it is, how accurate it is, and the ranges it was trained on. */
@@ -44,7 +45,7 @@ export function ModelSummary({ model }: { model: ModelInfo }) {
                 </th>
                 <td className="px-3 py-2 text-muted-foreground">{f.unit}</td>
                 <td className="px-3 py-2 text-right tabular-nums">
-                  {formatNumber(f.training_min)} – {formatNumber(f.training_max)}
+                  {formatFeatureValue(f.name, f.training_min)} – {formatFeatureValue(f.name, f.training_max)}
                 </td>
               </tr>
             ))}

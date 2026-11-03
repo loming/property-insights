@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createEstimate, deleteEstimate, type Estimate } from "@/lib/api/estimator";
+import { ApiError } from "@/lib/api/problem";
 
 import { type ActionResult, fieldErrorsFromZod, invalid, toActionError } from "./action-result";
 import { estimateSchema } from "./schema";
@@ -33,9 +34,12 @@ export async function deleteEstimateAction(id: unknown): Promise<ActionResult<nu
   }
   try {
     await deleteEstimate(parsed.data);
-    revalidatePath("/estimator/history");
-    return { ok: true, data: null };
   } catch (error) {
-    return toActionError(error);
+    // Already gone (deleted in another tab, say): that's the outcome the visitor asked for.
+    if (!(error instanceof ApiError && error.status === 404)) {
+      return toActionError(error);
+    }
   }
+  revalidatePath("/estimator/history");
+  return { ok: true, data: null };
 }

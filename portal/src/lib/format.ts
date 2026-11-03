@@ -11,6 +11,20 @@ export function formatPrice(value: number): string {
   return price.format(value);
 }
 
+/** "Nov 3, 2026, 3:45 AM UTC"; without a time zone, the runtime's own (the visitor's, in a browser). */
+export function formatDateTime(iso: string, timeZone?: string): string {
+  // dateStyle and timeStyle can't be combined with timeZoneName, so the fields are spelled out.
+  return new Intl.DateTimeFormat(LOCALE, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+    timeZoneName: "short",
+  }).format(new Date(iso));
+}
+
 export function formatNumber(value: number, fractionDigits?: number): string {
   if (fractionDigits === undefined) {
     return decimal.format(value);
