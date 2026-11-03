@@ -76,6 +76,33 @@ services:
     environment:
       MARKET_ML_API_URL: http://ml-api-ridge:8000
 
+  portal:
+    build: ./portal
+    image: property-insights/portal:local
+    environment:
+      # Server-side calls go straight to the backends over this network, never through the gateway.
+      ESTIMATOR_API_URL: http://estimator-api:8001
+      MARKET_API_URL: http://market-api:8080
+      APP_VARIANT: brief
+      OTHER_VARIANT_URL: ${RIDGE_PUBLIC_URL:-http://ridge.localhost:8130}
+    read_only: true
+    tmpfs:
+      - /tmp
+      # Next's fetch cache, writable by the node user (uid 1000).
+      - /app/.next/cache:uid=1000,gid=1000
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  portal-ridge:
+    extends: portal
+    profiles: [ridge]
+    environment:
+      ESTIMATOR_API_URL: http://estimator-api-ridge:8001
+      MARKET_API_URL: http://market-api-ridge:8080
+      APP_VARIANT: ridge
+      OTHER_VARIANT_URL: ${BRIEF_PUBLIC_URL:-http://localhost:8130}
+
   gateway:
     image: nginxinc/nginx-unprivileged:1.30.6-alpine
     ports:
