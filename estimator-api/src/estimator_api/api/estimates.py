@@ -97,4 +97,6 @@ async def delete_estimate(estimate_id: UUID, service: Service) -> Response:
 
 @router.delete("", response_model=Deleted, summary="Clear the whole history")
 async def delete_all_estimates(service: Service) -> Deleted:
+    """Available inside the compose network only: the public gateway answers 403, so nobody can wipe a
+    shared demo's history."""
     return Deleted(deleted=await service.delete_all())

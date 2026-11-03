@@ -30,6 +30,30 @@ services:
         MODEL_KIND: ridge
     image: property-insights/ml-api:ridge
 
+  estimator-api:
+    build: ./estimator-api
+    image: property-insights/estimator-api:local
+    environment:
+      UVICORN_ROOT_PATH: /estimator-api
+      ML_API_URL: http://ml-api:8000
+      LOG_LEVEL: INFO
+    volumes:
+      - estimator-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  estimator-api-ridge:
+    extends: estimator-api
+    profiles: [ridge]
+    environment:
+      ML_API_URL: http://ml-api-ridge:8000
+    # Same mount point, own volume: the two sets keep separate histories.
+    volumes:
+      - estimator-ridge-data:/data
+
   gateway:
     image: nginxinc/nginx-unprivileged:1.30.6-alpine
     ports:
@@ -47,3 +71,7 @@ services:
       timeout: 3s
       retries: 3
     restart: unless-stopped
+
+volumes:
+  estimator-data:
+  estimator-ridge-data:
