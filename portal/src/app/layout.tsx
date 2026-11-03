@@ -35,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <footer className="border-t text-sm text-muted-foreground">
             <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
               <span>Property Insights: a full-stack take-home on a 50-home dataset.</span>
-              <a className="underline underline-offset-4 hover:text-foreground" href="/ml-api/docs">
+              <a className="inline-flex min-h-6 items-center underline underline-offset-4 hover:text-foreground" href="/ml-api/docs">
                 Model API (Swagger)
               </a>
             </div>

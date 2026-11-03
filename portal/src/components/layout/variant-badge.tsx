@@ -17,7 +17,10 @@ export async function VariantBadge() {
         {ridge ? "Ridge model, recommended" : "Linear regression, as briefed"}
       </Badge>
       {OTHER_VARIANT_URL && (
-        <a className="text-primary underline underline-offset-4 hover:no-underline" href={OTHER_VARIANT_URL}>
+        <a
+          className="inline-flex min-h-6 items-center text-primary underline underline-offset-4 hover:no-underline"
+          href={OTHER_VARIANT_URL}
+        >
           {ridge ? "Switch to the brief set" : "Compare with the Ridge set"}
         </a>
       )}

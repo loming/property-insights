@@ -69,7 +69,7 @@ export default async function MarketDashboardPage({ searchParams }: PageProps<"/
             </div>
             <Link
               href={query.size > 0 ? `/market/data?${query}` : "/market/data"}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+              className="inline-flex min-h-6 items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
             >
               See these homes in the table, and export them
               <ArrowRight aria-hidden="true" className="size-4" />
