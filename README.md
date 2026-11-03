@@ -162,7 +162,7 @@ npx playwright install chromium
 npm run e2e
 ```
 
-For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway (`http://localhost:8130/estimator-api` and `http://localhost:8130/market-api`); for the Ridge set, use `ridge.localhost:8130` and set `APP_VARIANT=ridge`. Through the gateway, the dev server's calls share its rate limit of 10 per second, which the containers' direct calls don't.
+For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway (`http://localhost:8130/estimator-api` and `http://localhost:8130/market-api`); for the Ridge set, use `ridge.localhost:8130` and set `APP_VARIANT=ridge`. Through the gateway, the dev server's calls share its rate limit of 100 per second, which the containers' direct calls don't.
 
 ## Repository layout
 
