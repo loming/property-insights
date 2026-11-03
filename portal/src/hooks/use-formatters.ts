@@ -18,6 +18,10 @@ export function useFormatters() {
         const abs = Math.abs(value);
         return abs >= 1000 ? `${sign}$${formatNumber(abs / 1000, 1)}k` : `${sign}${formatPrice(abs)}`;
       },
+      /** "+$7,024" / "−$38,594": signed and exact, where the figures must add up. */
+      signedExactPrice: (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatPrice(Math.abs(value))}`,
+      /** "+2.81%" / "−15.9%", with a true minus sign to match the prices. */
+      signedPercent: (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${formatNumber(Math.abs(value))}%`,
     }),
     [],
   );
