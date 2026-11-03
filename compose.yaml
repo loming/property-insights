@@ -54,6 +54,28 @@ services:
     volumes:
       - estimator-ridge-data:/data
 
+  market-api:
+    build:
+      context: ./market-api
+      additional_contexts:
+        data: ./data
+    image: property-insights/market-api:local
+    environment:
+      MARKET_ML_API_URL: http://ml-api:8000
+    # The JVM sizes its heap from this (MaxRAMPercentage=75).
+    mem_limit: 768m
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+
+  market-api-ridge:
+    extends: market-api
+    profiles: [ridge]
+    environment:
+      MARKET_ML_API_URL: http://ml-api-ridge:8000
+
   gateway:
     image: nginxinc/nginx-unprivileged:1.30.6-alpine
     ports:
