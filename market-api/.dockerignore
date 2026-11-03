@@ -1,0 +1,5 @@
+# Keep build output and local state out of the image (doc 02, A10).
+target/
+.idea/
+*.iml
+.env*

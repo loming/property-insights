@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: market-api
+  threads:
+    virtual:
+      enabled: true
+  jackson:
+    # One JSON contract across services: snake_case, like the dataset and ml-api (doc 02, D8).
+    property-naming-strategy: SNAKE_CASE
+  http:
+    client:
+      # Explicit timeouts on the auto-configured RestClient used for ml-api (doc 02, D7).
+      factory: jdk
+      connect-timeout: 2s
+      read-timeout: 5s
+
+server:
+  port: 8080
+  shutdown: graceful
+  # Honour X-Forwarded-Prefix/Proto/Host from the gateway, so Swagger works under /market-api/ (doc 02, D14).
+  forward-headers-strategy: framework
+
+market:
+  data: file:/app/data/house_prices.csv
+  ml-api-url: http://localhost:8010
+  ml-retries: 2
+  model-cache-ttl: 10m
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,caches,metrics
+  endpoint:
+    caches:
+      # Exposed caches would otherwise accept DELETE without auth (doc 02, D12).
+      access: read-only
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  default-produces-media-type: application/json
+
+logging:
+  structured:
+    format:
+      console: ecs
