@@ -34,7 +34,35 @@ export type ModelInfo = {
   coefficients: Coefficient[];
   features: FeatureInfo[];
   metrics: { cv: { r2: { mean: number }; rmse: { mean: number }; mae: { mean: number } } };
+  price_distribution: { bin_edges: number[]; counts: number[] };
   notes: string[];
+};
+
+export type PredictionWarning = {
+  code: "OUTSIDE_TRAINING_RANGE" | "UNUSUAL_COMBINATION" | string;
+  field?: string | null;
+  value?: number | null;
+  message: string;
+};
+
+export type Estimate = {
+  id: string;
+  label: string | null;
+  features: Record<string, number>;
+  predicted_price: number;
+  currency: "USD";
+  model_version: string;
+  warnings: PredictionWarning[];
+  contributions: { baseline: number; by_feature: Record<string, number> } | null;
+  created_at: string;
+};
+
+export type EstimatePage = { items: Estimate[]; total: number; limit: number; offset: number };
+
+export type Comparison = {
+  estimates: Estimate[];
+  missing_ids: string[];
+  ranges: Record<string, { min: number; max: number }>;
 };
 
 export function getEstimatorHealth(): Promise<EstimatorHealth> {
@@ -44,4 +72,27 @@ export function getEstimatorHealth(): Promise<EstimatorHealth> {
 /** Changes only when the model is rebuilt: cached for an hour, tagged for revalidation. */
 export function getModelInfo(): Promise<ModelInfo> {
   return apiFetch<ModelInfo>("estimator", "/api/v1/model-info", { revalidate: 3_600, tags: ["model-info"] });
+}
+
+// History is per user action, so these are never cached.
+
+export function createEstimate(body: { label?: string; features: Record<string, number> }): Promise<Estimate> {
+  return apiFetch<Estimate>("estimator", "/api/v1/estimates", { method: "POST", body });
+}
+
+export function listEstimates(limit: number, offset: number): Promise<EstimatePage> {
+  return apiFetch<EstimatePage>("estimator", `/api/v1/estimates?limit=${limit}&offset=${offset}`);
+}
+
+export function getEstimate(id: string): Promise<Estimate> {
+  return apiFetch<Estimate>("estimator", `/api/v1/estimates/${encodeURIComponent(id)}`);
+}
+
+export function compareEstimates(ids: string[]): Promise<Comparison> {
+  const query = ids.map((id) => `ids=${encodeURIComponent(id)}`).join("&");
+  return apiFetch<Comparison>("estimator", `/api/v1/estimates/compare?${query}`);
+}
+
+export function deleteEstimate(id: string): Promise<void> {
+  return apiFetch<void>("estimator", `/api/v1/estimates/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
