@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Phase 0, repository foundations.** The services land phase by phase; the commands below work once Phase 1 adds `compose.yaml`.
+> **Status: Task 1 is complete** (`ml-api` in both sets, behind the gateway). Task 2's services land next; until the portal arrives, the site root opens Task 1's Swagger UI.
 
 ## Quick start
 
@@ -28,19 +28,53 @@ Then open:
 
 | What | URL |
 |---|---|
-| Portal | http://localhost:8130/ |
 | Task 1 Swagger (`ml-api`) | http://localhost:8130/ml-api/docs |
-| App 1 backend Swagger (`estimator-api`) | http://localhost:8130/estimator-api/docs |
-| App 2 backend Swagger (`market-api`) | http://localhost:8130/market-api/swagger-ui.html |
+| Portal (Task 2, coming) | http://localhost:8130/ |
+| App 1 backend Swagger (`estimator-api`, coming) | http://localhost:8130/estimator-api/docs |
+| App 2 backend Swagger (`market-api`, coming) | http://localhost:8130/market-api/swagger-ui.html |
 
 For the Ridge set, add `--profile ridge` (or set `COMPOSE_PROFILES=ridge` in `.env`) and use `ridge.localhost` instead of `localhost`. To change the port, copy `.env.example` to `.env` and set `GATEWAY_PORT`.
+
+## Task 1: the model API (`ml-api`)
+
+| Endpoint | What it does |
+|---|---|
+| `POST /predict` | One property → predicted price, plus `warnings`. Add `?explain=true` for each feature's contribution relative to the average home. |
+| `POST /predict/batch` | 1–1,000 properties in one call; predictions come back in input order with a 0-based `index`. The Swagger example is the provided test file. |
+| `GET /model-info` | Model type and version, per-unit coefficients, cross-validated metrics against a predict-the-mean baseline, training ranges, and notes on reading the coefficients. |
+| `GET /health` | 200 when the model is loaded; 503 if it failed to load, so Docker marks the container unhealthy. |
+
+**The two models.** Both use all 7 features and are trained when the image is built (`MODEL_KIND` build arg), then evaluated with 5-fold cross-validation repeated 20 times:
+
+| Set | Model | CV R² | CV RMSE | CV MAE |
+|---|---|---|---|---|
+| Brief | Plain linear regression (`LinearRegression`) | 0.972 | $10.5k | $7.6k |
+| Ridge | Ridge, α = 3: the most accurate α whose size and quality coefficients are all positive | 0.976 | $10.9k | $9.6k |
+| — | Predict-the-mean baseline | −0.19 | $80.5k | $70.3k |
+
+The features are strongly correlated with each other, so plain linear regression predicts well but gives square footage (−$103 per sq ft) and bedrooms negative coefficients: lot size carries the size signal instead. The brief set serves it as asked, with that explained in `/model-info`. The Ridge set gives up about $400 of RMSE for coefficients that all point the expected way.
+
+**Guard rails.**
+- **Validation:** every field is required and range-checked, and unknown fields are rejected.
+- **Warnings:** inputs outside the training range get an `OUTSIDE_TRAINING_RANGE` warning, and in-range inputs whose combination is unlike any training home get `UNUSUAL_COMBINATION`.
+- **Prices at or below $0:** rejected with a 422 `outside-model-domain` problem rather than clamped. Plain linear regression hits this for a 4,100 sq ft median home.
+- **Errors:** every error is RFC 9457 `application/problem+json` with a `request_id`, which also comes back as the `X-Request-ID` header.
+
+**Develop and test** (needs [uv](https://docs.astral.sh/uv/) 0.11.28):
+
+```bash
+cd ml-api
+uv sync
+uv run pytest
+uv run python -m ml_api.training.train --kind ols --out artifacts
+```
 
 ## Repository layout
 
 ```text
 ├── data/            # the provided datasets: the single source of truth for training and analytics
-├── gateway/         # nginx: one published port, routes to every service       (Phase 1)
-├── ml-api/          # Task 1: FastAPI + scikit-learn                           (Phase 1)
+├── gateway/         # nginx: one published port, routes to every service
+├── ml-api/          # Task 1: FastAPI + scikit-learn
 ├── estimator-api/   # Task 2, App 1 backend: FastAPI + SQLite                  (Phase 2)
 ├── market-api/      # Task 2, App 2 backend: Spring Boot 3.4.4 / Java 21       (Phase 3)
 ├── portal/          # Task 2: Next.js App Router portal                        (Phases 4–6)
