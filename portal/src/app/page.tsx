@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
+import { ServiceStatus, ServiceStatusSkeleton } from "@/components/layout/service-status";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Overview() {
@@ -34,6 +36,15 @@ export default function Overview() {
           </Link>
         </li>
       </ul>
+      <section aria-labelledby="status-heading" className="space-y-2">
+        <h2 id="status-heading" className="font-heading text-lg font-semibold">
+          Service status
+        </h2>
+        {/* Streams in after the page; a slow or down backend never blocks the rest. */}
+        <Suspense fallback={<ServiceStatusSkeleton />}>
+          <ServiceStatus />
+        </Suspense>
+      </section>
     </div>
   );
 }
