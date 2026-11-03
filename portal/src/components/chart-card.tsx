@@ -13,11 +13,14 @@ export function ChartCard({
   title,
   description,
   table,
+  controls,
   children,
 }: {
   title: string;
   description: React.ReactNode;
   table: React.ReactNode;
+  /** Choices that change what the chart shows, such as how to split the data. */
+  controls?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [showTable, setShowTable] = useState(false);
@@ -35,6 +38,7 @@ export function ChartCard({
           {showTable ? "Show chart" : "Show as table"}
         </Button>
       </div>
+      {controls}
       {!showTable && <div aria-hidden="true">{children}</div>}
       <div className={showTable ? "overflow-x-auto" : "sr-only"}>{table}</div>
     </figure>
