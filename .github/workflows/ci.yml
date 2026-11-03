@@ -12,9 +12,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# One job per service, filtered by path, joins this file as each service lands
-# (ml-api in Phase 1, estimator-api in Phase 2, market-api in Phase 3, portal in Phase 4),
-# followed by a full-stack compose job. Runners and actions stay pinned.
+# One job per service joins this file as each service lands (ml-api in Phase 1, estimator-api in
+# Phase 2, market-api in Phase 3, portal in Phase 4), plus a compose job that runs the built stack.
+# Every job runs on every push: at this size, path filters would save seconds, not minutes.
+# Runners and actions are pinned; uv matches the version pinned in the Dockerfile and pyproject.
 jobs:
   repo-hygiene:
     name: Repo hygiene
@@ -47,3 +48,57 @@ jobs:
               exit 1
             fi
           done
+
+  ml-api:
+    name: ml-api (lint, tests, dependency audit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ml-api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.28"
+          enable-cache: true
+          cache-dependency-glob: ml-api/uv.lock
+      - run: uv sync --locked
+      # The tools live in the project environment, so they run through uv.
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pytest
+      - name: Audit the runtime dependencies
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements.txt" --disable-pip --strict
+
+  compose:
+    name: Compose (both sets through the gateway)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Gateway config is valid
+        run: >-
+          docker run --rm -v "$PWD/gateway/conf.d:/etc/nginx/conf.d:ro"
+          -v "$PWD/gateway/snippets:/etc/nginx/snippets:ro"
+          nginxinc/nginx-unprivileged:1.30.6-alpine nginx -t
+      - name: Build and start both sets
+        run: docker compose --profile ridge up -d --build --wait
+      - name: Each Host reaches its own model, with Swagger behind the prefix
+        run: |
+          set -eu
+          gw=http://127.0.0.1:8130
+          row='{"square_footage":1550,"bedrooms":3,"bathrooms":2,"year_built":1997,"lot_size":6800,"distance_to_city_center":4.1,"school_rating":7.6}'
+          curl -fsS -H "Host: hsbc.loming.com" "$gw/ml-api/health" | grep -q '"model_version":"ols-'
+          curl -fsS -H "Host: hsbc-ridge.loming.com" "$gw/ml-api/health" | grep -q '"model_version":"ridge-'
+          curl -fsS -H "Content-Type: application/json" -d "$row" "$gw/ml-api/predict" | grep -q '"predicted_price":250879.73'
+          curl -fsS -H "Host: hsbc-ridge.loming.com" -H "Content-Type: application/json" -d "$row" "$gw/ml-api/predict" \
+            | grep -q '"predicted_price":250932.28'
+          curl -fsS "$gw/ml-api/docs" | grep -q "/ml-api/openapi.json"
+          curl -fsS "$gw/ml-api/openapi.json" | grep -q '"servers":\[{"url":"/ml-api"}\]'
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$gw/nope")" = 404
+      - name: Logs
+        if: failure()
+        run: docker compose --profile ridge logs
