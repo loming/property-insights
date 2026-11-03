@@ -94,10 +94,33 @@ jobs:
       # The tests read ../data and ../ml-api (the feature contract) from the checkout.
       - run: ./mvnw -B verify
 
+  portal:
+    name: portal (lint, types, unit tests, build, audit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: portal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: portal/.nvmrc
+          cache: npm
+          cache-dependency-path: portal/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # No backend URLs here, as in the image build: proves no page prerenders backend data (doc 02, E2).
+      - run: npm run build
+      # The ESLint toolchain's dev-only findings are tracked separately; the shipped dependencies must be clean.
+      - run: npm audit --omit=dev
+
   compose:
     name: Compose (both sets through the gateway)
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Gateway config is valid
@@ -146,6 +169,36 @@ jobs:
             "$gw/market-api/api/v1/market/what-if" | grep -q '"model_version":"ridge-'
           curl -fsS "$gw/market-api/v3/api-docs/swagger-config" | grep -q '"url":"/market-api/v3/api-docs"'
           curl -fsS -o /dev/null "$gw/market-api/api/v1/market/export/pdf"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: portal/.nvmrc
+          cache: npm
+          cache-dependency-path: portal/package-lock.json
+      - name: Browser checks of the portal through the gateway (Playwright + axe, WCAG 2.2 AA)
+        working-directory: portal
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - name: Each app keeps working with the other app's backend down (P-0)
+        working-directory: portal
+        run: |
+          for svc in estimator market; do
+            docker compose stop "$svc-api"
+            # Clears Next's data cache, which would otherwise keep serving the stopped backend's data.
+            docker compose restart portal
+            docker compose up -d --wait portal
+            E2E_DOWN=$svc npx playwright test e2e/resilience.spec.ts
+            docker compose start "$svc-api"
+            docker compose up -d --wait "$svc-api"
+          done
+      - name: Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: portal/playwright-report
+          retention-days: 7
       - name: Logs
         if: failure()
         run: docker compose --profile ridge logs
