@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Task 1 is complete** (`ml-api` in both sets, behind the gateway). Task 2's services land next; until the portal arrives, the site root opens Task 1's Swagger UI.
+> **Status: Task 1 is complete, and so is App 1's backend** (`estimator-api`), both in both sets behind the gateway. App 2's backend and the portal land next; until the portal arrives, the site root opens Task 1's Swagger UI.
 
 ## Quick start
 
@@ -30,7 +30,7 @@ Then open:
 |---|---|
 | Task 1 Swagger (`ml-api`) | http://localhost:8130/ml-api/docs |
 | Portal (Task 2, coming) | http://localhost:8130/ |
-| App 1 backend Swagger (`estimator-api`, coming) | http://localhost:8130/estimator-api/docs |
+| App 1 backend Swagger (`estimator-api`) | http://localhost:8130/estimator-api/docs |
 | App 2 backend Swagger (`market-api`, coming) | http://localhost:8130/market-api/swagger-ui.html |
 
 For the Ridge set, add `--profile ridge` (or set `COMPOSE_PROFILES=ridge` in `.env`) and use `ridge.localhost` instead of `localhost`. To change the port, copy `.env.example` to `.env` and set `GATEWAY_PORT`.
@@ -69,13 +69,36 @@ uv run pytest
 uv run python -m ml_api.training.train --kind ols --out artifacts
 ```
 
+## App 1 backend: the estimator API (`estimator-api`)
+
+FastAPI with SQLAlchemy 2.1 (async, SQLite on a named volume). Each estimate is priced by the Task 1 model and saved, so the portal can show a history and compare properties.
+
+| Endpoint | What it does |
+|---|---|
+| `POST /api/v1/estimates` | Validates the input (the same limits as `ml-api`, kept in sync by a contract test), prices it through `ml-api` with per-feature contributions, and saves it. Nothing is saved if the model call fails. |
+| `GET /api/v1/estimates` | The history, newest first, paged (`limit`, `offset`), with a `total`. |
+| `GET /api/v1/estimates/{id}` | One estimate. |
+| `GET /api/v1/estimates/compare?ids=…&ids=…` | 2–4 estimates side by side, with each feature's min and max for highlighting, and `missing_ids` for any that were deleted. |
+| `DELETE /api/v1/estimates/{id}` | Deletes one estimate. Clearing the whole history (`DELETE /api/v1/estimates`) works only inside the compose network: the public gateway refuses it. |
+| `GET /api/v1/model-info` | `ml-api`'s metadata, cached for 5 minutes and served stale while `ml-api` is down. |
+| `GET /health` | 200 while the database works, reporting `ml_api` as `up` or `down`. |
+
+**When the model fails**, nothing is saved, and the error says why:
+- **The model rejects the input:** its 422 passes through, with field names under `features.*`.
+- **The model answers with an error** or something unreadable: 502 `model-error`.
+- **The model is unreachable, times out or has no model loaded:** 503 `model-unavailable`. Calls have a 2 s connect and 5 s read timeout, and only connection failures are retried, twice.
+
+The history and comparison keep working while `ml-api` is down.
+
+Each set has its own history: the Ridge set's `estimator-api-ridge` calls `ml-api-ridge` and keeps its own volume.
+
 ## Repository layout
 
 ```text
 ├── data/            # the provided datasets: the single source of truth for training and analytics
 ├── gateway/         # nginx: one published port, routes to every service
 ├── ml-api/          # Task 1: FastAPI + scikit-learn
-├── estimator-api/   # Task 2, App 1 backend: FastAPI + SQLite                  (Phase 2)
+├── estimator-api/   # Task 2, App 1 backend: FastAPI + SQLite
 ├── market-api/      # Task 2, App 2 backend: Spring Boot 3.4.4 / Java 21       (Phase 3)
 ├── portal/          # Task 2: Next.js App Router portal                        (Phases 4–6)
 └── docs/            # architecture, decisions (ADRs), demo script, hosting
