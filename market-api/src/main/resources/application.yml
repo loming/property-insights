@@ -7,6 +7,10 @@ spring:
   jackson:
     # One JSON contract across services: snake_case, like the dataset and ml-api (doc 02, D8).
     property-naming-strategy: SNAKE_CASE
+    deserialization:
+      # 3.5 bedrooms must be an error, not silently 3.
+      accept-float-as-int: false
+      fail-on-unknown-properties: true
   http:
     client:
       # Explicit timeouts on the auto-configured RestClient used for ml-api (doc 02, D7).
