@@ -32,7 +32,8 @@ export async function apiFetch<T>(service: Service, path: string, options: Fetch
 
   let response: Response;
   try {
-    response = await fetch(new URL(path, base), {
+    // Appended, not resolved: a base with a path (the gateway's /estimator-api, for local dev) keeps it.
+    response = await fetch(`${base.replace(/\/+$/, "")}${path}`, {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/json",

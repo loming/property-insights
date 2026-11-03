@@ -37,6 +37,14 @@ describe("apiFetch", () => {
     expect(init!.cache).toBe("no-store");
   });
 
+  it("keeps a path prefix in the base URL", async () => {
+    vi.stubEnv("ESTIMATOR_API_URL", "http://127.0.0.1:8130/estimator-api/");
+    resetServerEnv();
+    fetchMock.mockResolvedValue(json({ status: "ok" }));
+    await apiFetch("estimator", "/health");
+    expect(String(fetchMock.mock.calls[0]![0])).toBe("http://127.0.0.1:8130/estimator-api/health");
+  });
+
   it("uses the data cache only when asked", async () => {
     fetchMock.mockResolvedValue(json({}));
     await apiFetch("estimator", "/api/v1/model-info", { revalidate: 3600, tags: ["model-info"] });

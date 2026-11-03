@@ -133,6 +133,48 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Page transitions: route changes crossfade with a short rise (React's <ViewTransition default="page">). */
+::view-transition-old(.page) {
+  animation: 120ms ease-out both page-fade reverse;
+}
+::view-transition-new(.page) {
+  animation:
+    180ms ease-in 60ms both page-fade,
+    240ms ease-out both page-rise;
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes page-rise {
+  from {
+    transform: translateY(6px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion: content swaps instantly (TR-2d, WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Keep focused elements clear of the sticky header (WCAG 2.4.11). */
+html {
+  scroll-padding-top: 5rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
