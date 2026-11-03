@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Equal, RotateCcw, TriangleAlert } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,11 @@ function withUnit(name: FeatureName, value: number): string {
   return `${formatFeatureValue(name, value)}${unit ? ` ${unit}` : ""}`;
 }
 
+/** Moves focus to the first slider thumb in `container`, once React has re-rendered. */
+function focusSliderIn(container: HTMLElement | null) {
+  requestAnimationFrame(() => container?.querySelector<HTMLElement>('[role="slider"]')?.focus());
+}
+
 function FeatureSlider({
   name,
   value,
@@ -52,8 +57,9 @@ function FeatureSlider({
   const fmt = useFormatters();
   const feature = FEATURE_BY_NAME[name];
   const changed = Math.abs(value - baseline) > 1e-9;
+  const ref = useRef<HTMLDivElement>(null);
   return (
-    <div className="space-y-2.5">
+    <div ref={ref} className="space-y-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="flex items-center gap-2 text-sm font-medium">
           {feature.label}
@@ -80,7 +86,15 @@ function FeatureSlider({
           )}
         </span>
         {changed && (
-          <Button variant="ghost" size="xs" onClick={() => onChange(baseline)}>
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => {
+              onChange(baseline);
+              // The button goes once the value is back at the baseline: focus moves to the slider it reset.
+              focusSliderIn(ref.current);
+            }}
+          >
             <RotateCcw aria-hidden="true" />
             Reset<span className="sr-only"> {feature.label.toLowerCase()}</span>
           </Button>
@@ -249,6 +263,7 @@ export function WhatIfPanel({
   const baseline = baselines.find((b) => b.id === baselineId) ?? baselines[0]!;
   const [scenario, setScenario] = useState<HomeFeatures>(baseline.features);
   const id = useId();
+  const slidersRef = useRef<HTMLDivElement>(null);
   const changed = Object.keys(changesFrom(baseline.features, scenario)).length > 0;
 
   function chooseBaseline(next: string) {
@@ -304,7 +319,16 @@ export function WhatIfPanel({
             <h2 id={`${id}-features`} className="font-heading text-base font-semibold">
               Change the features
             </h2>
-            <Button variant="outline" size="sm" disabled={!changed} onClick={() => setScenario(baseline.features)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!changed}
+              onClick={() => {
+                setScenario(baseline.features);
+                // A disabled button loses focus: it moves to the first slider instead.
+                focusSliderIn(slidersRef.current);
+              }}
+            >
               <RotateCcw aria-hidden="true" />
               Reset all
             </Button>
@@ -313,7 +337,7 @@ export function WhatIfPanel({
             Each slider covers the range of the homes in the data. The model prices every change with the other
             features held where they are.
           </p>
-          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+          <div ref={slidersRef} className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
             {FEATURES.map((f) => (
               <FeatureSlider
                 key={f.name}

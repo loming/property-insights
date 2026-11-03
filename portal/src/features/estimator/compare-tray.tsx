@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { MAX_COMPARE, MIN_COMPARE } from "@/stores/compare-tray";
@@ -43,6 +43,24 @@ export function CompareTray() {
   const remove = useCompareTray((state) => state.remove);
   const clear = useCompareTray((state) => state.clear);
   const trayRef = useRef<HTMLElement>(null);
+  // The tray sticks to the bottom of the window. The page's scroll padding follows its height, so an
+  // element that takes focus scrolls clear of it rather than behind it (WCAG 2.4.11).
+  const attach = useCallback((node: HTMLElement | null) => {
+    trayRef.current = node;
+    if (!node) {
+      return;
+    }
+    const root = document.documentElement;
+    const observer = new ResizeObserver(([entry]) => {
+      root.style.setProperty("--compare-tray-space", `${Math.ceil(entry!.borderBoxSize[0]!.blockSize) + 24}px`);
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--compare-tray-space");
+      trayRef.current = null;
+    };
+  }, []);
 
   if (!hydrated || items.length === 0) {
     return null;
@@ -51,7 +69,7 @@ export function CompareTray() {
 
   return (
     <aside
-      ref={trayRef}
+      ref={attach}
       tabIndex={-1}
       aria-label="Comparison tray"
       className="sticky bottom-4 z-30 mt-8 rounded-xl border bg-background/95 p-3 shadow-lg outline-none backdrop-blur supports-[backdrop-filter]:bg-background/85"
@@ -81,7 +99,15 @@ export function CompareTray() {
           ))}
         </ul>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={clear}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              clear();
+              // The tray goes with its last estimate: focus moves to the page rather than being lost.
+              document.getElementById("main")?.focus({ preventScroll: true });
+            }}
+          >
             Clear
           </Button>
           {ready ? (

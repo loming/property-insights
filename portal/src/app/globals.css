@@ -181,9 +181,10 @@
   }
 }
 
-/* Keep focused elements clear of the sticky header (WCAG 2.4.11). */
+/* Keep focused elements clear of the sticky header, and of the compare tray while it shows (WCAG 2.4.11). */
 html {
   scroll-padding-top: 5rem;
+  scroll-padding-bottom: var(--compare-tray-space, 0px);
 }
 
 @layer base {
