@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Task 1, both Task 2 backends and the portal's foundation are complete**, in both sets behind the gateway. The portal's two apps get their full screens next (the estimate form, history and comparison; the market dashboard, data table and what-if).
+> **Status: Task 1, both Task 2 backends and App 1 (the estimator) are complete**, in both sets behind the gateway. App 2's full screens come next (the market dashboard, data table and what-if).
 
 ## Quick start
 
@@ -130,10 +130,18 @@ docker run --rm -v "${PWD}:/repo" -v market-api-m2:/root/.m2 -w /repo/market-api
 
 Next.js 16.4 (App Router, React 19.3) with Tailwind 4 and shadcn/ui on Radix. One portal hosts both apps: `/estimator` (App 1) and `/market` (App 2), each with its own layout, sub-navigation, loading skeletons, error boundary and not-found page.
 
+**App 1, the Property Value Estimator:**
+
+- **Estimate** (`/estimator`). A form for the seven model inputs, starting from a typical home, with each field's training range as a hint. It validates in the browser with the same Zod schema the Server Action uses on the server; errors appear by each field and in a summary that links to them, and focus moves to the first. The result shows the price, the model's warnings, the inputs as a table and where the price sits among the 50 training sales. The Ridge set also shows what each feature adds to or takes from the average home's price. A home the brief model prices at $0 or less gets a plain message instead.
+- **History** (`/estimator/history`). Every estimate is saved by `estimator-api`, newest first, ten a page. Delete asks for confirmation in the row and removes the row at once (React's `useOptimistic`), putting it back with a message if the delete fails. Each estimate has its own page.
+- **Compare** (`/estimator/compare?ids=…`). A Compare toggle on each estimate adds it to a tray of up to four, kept in `localStorage` (a Zustand store). The comparison puts the estimates in columns, marks the highest and lowest value in every row that differs, and charts the prices and each feature's place in the training range. The ids are in the URL, so a comparison can be bookmarked; estimates deleted since are reported and dropped from the tray.
+
+**Throughout:**
+
 - **Independent apps.** Server code reaches each backend directly over the compose network, never through the gateway. App 1's code may only use `estimator-api`, App 2's only `market-api`, and an ESLint rule rejects cross-app imports. With either backend stopped, that app shows its own error panel (with "Try again", which re-fetches) while the shell and the other app keep working; the browser tests check this.
 - **Data loading.** Pages load in Server Components through one server-only fetch wrapper. It waits for the request (so nothing is prerendered during `docker build`), sends a request ID, times out, and turns any failure into the backend's problem+json. Caching is chosen per data type: model info for an hour, market aggregates for 5 minutes, live status never.
 - **One image, two sets.** The set (`APP_VARIANT`) and the backend URLs are server-only runtime variables, validated on first use, so the same image serves the brief set and the Ridge set; the header shows which, with a link to the other.
-- **Accessibility.** WCAG 2.2 AA is the target: skip link, landmarks, `aria-current` navigation, visible focus with 3:1 contrast, colour never the only signal, focus kept clear of the sticky header, and page transitions (React's `<ViewTransition>`) that switch off under `prefers-reduced-motion`. axe runs on every page in CI.
+- **Accessibility.** WCAG 2.2 AA is the target: skip link, landmarks, `aria-current` navigation, visible focus with 3:1 contrast, colour never the only signal, focus kept clear of the sticky header, and page transitions (React's `<ViewTransition>`) that switch off under `prefers-reduced-motion`. Every chart is a captioned figure with a table view, and its colours (Okabe-Ito) stay distinct under colour blindness. axe runs on every page in CI, and again along the estimator's flows.
 
 **Develop and test** (Node 24.22.2, see `.nvmrc`), with the stack running for the browser tests:
 
