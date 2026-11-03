@@ -1,0 +1,47 @@
+# Provided inputs kept out of git: the brief is confidential (doc 02, G4), and the
+# original CSVs are superseded by their LF, BOM-free copies in data/.
+/Interview Tasks Fullstack.pdf
+/House Price Dataset.csv
+/Test Data For Prediction.csv
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Model artifacts are built inside the image, never committed (doc 02, B7)
+*.joblib
+artifacts/
+
+# Node and Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+
+# Java
+target/
+
+# SQLite estimate history
+*.db
+*.db-journal

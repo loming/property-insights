@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# One job per service, filtered by path, joins this file as each service lands
+# (ml-api in Phase 1, estimator-api in Phase 2, market-api in Phase 3, portal in Phase 4),
+# followed by a full-stack compose job. Runners and actions stay pinned.
+jobs:
+  repo-hygiene:
+    name: Repo hygiene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Text files are stored with LF endings
+        run: |
+          bad=$(git ls-files --eol | awk '$1 == "i/crlf" || $1 == "i/mixed"')
+          if [ -n "$bad" ]; then
+            echo "::error::Files stored with CRLF endings (see .gitattributes):"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Local config is not committed
+        run: |
+          if git ls-files --error-unmatch .env > /dev/null 2>&1; then
+            echo "::error::.env is committed; only .env.example belongs in git"
+            exit 1
+          fi
+
+      - name: Datasets have no byte-order mark
+        run: |
+          for f in data/*.csv; do
+            if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' ')" = "efbbbf" ]; then
+              echo "::error file=$f::starts with a UTF-8 byte-order mark"
+              exit 1
+            fi
+          done
