@@ -1,0 +1,38 @@
+[project]
+name = "estimator-api"
+version = "1.0.0"
+description = "Task 2, App 1 backend: property estimates, history and comparison, using the Task 1 model"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.162.0",
+    "httpx2>=2.16.0",
+    "pydantic-settings>=2.16.2",
+    "sqlalchemy[aiosqlite]>=2.1.6",
+    "uvicorn>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv]
+# Pinned in three places: here, the Dockerfile and CI (doc 02, A4).
+required-version = "==0.11.28"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]
