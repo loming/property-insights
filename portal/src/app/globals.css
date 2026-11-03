@@ -161,6 +161,16 @@
   }
 }
 
+/* The bar that runs above results while new ones load (market filters). */
+@keyframes progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
 /* Reduced motion: content swaps instantly (TR-2d, WCAG 2.3.3). */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),

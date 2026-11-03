@@ -1,8 +1,10 @@
 import { SectionHeader } from "@/components/layout/section-header";
+import { FILTER_PARAMS } from "@/features/market/filters";
 
+// The dashboard and the table show the same filtered homes, so moving between them keeps the filters.
 const SECTIONS = [
-  { href: "/market", label: "Dashboard", exact: true },
-  { href: "/market/data", label: "Data" },
+  { href: "/market", label: "Dashboard", exact: true, keepParams: FILTER_PARAMS },
+  { href: "/market/data", label: "Data", keepParams: FILTER_PARAMS },
   { href: "/market/what-if", label: "What-if" },
 ];
 

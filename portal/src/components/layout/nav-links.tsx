@@ -1,14 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-export type NavItem = { href: string; label: string; exact?: boolean };
+export type NavItem = {
+  href: string;
+  label: string;
+  exact?: boolean;
+  /** Query parameters the link carries over from the current page, such as the market filters. */
+  keepParams?: readonly string[];
+};
+
+function hrefFor(item: NavItem, search: URLSearchParams | undefined): string {
+  if (!search || !item.keepParams) {
+    return item.href;
+  }
+  const params = new URLSearchParams();
+  for (const [name, value] of search) {
+    if (item.keepParams.includes(name)) {
+      params.append(name, value);
+    }
+  }
+  return params.size > 0 ? `${item.href}?${params}` : item.href;
+}
 
 /** A labelled nav landmark; the current page is marked with aria-current, not only with colour. */
-export function NavLinks({ label, items, variant = "primary" }: { label: string; items: NavItem[]; variant?: "primary" | "sub" }) {
+export function NavLinks({
+  label,
+  items,
+  variant = "primary",
+  search,
+}: {
+  label: string;
+  items: NavItem[];
+  variant?: "primary" | "sub";
+  search?: URLSearchParams;
+}) {
   const pathname = usePathname();
   return (
     <nav aria-label={label}>
@@ -18,7 +47,7 @@ export function NavLinks({ label, items, variant = "primary" }: { label: string;
           return (
             <li key={item.href}>
               <Link
-                href={item.href}
+                href={hrefFor(item, search)}
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-8 items-center rounded-md px-3 text-sm font-medium transition-colors",
@@ -38,4 +67,10 @@ export function NavLinks({ label, items, variant = "primary" }: { label: string;
       </ul>
     </nav>
   );
+}
+
+/** NavLinks that read the current query string, for items with keepParams. Render it inside Suspense. */
+export function SearchAwareNavLinks(props: Omit<React.ComponentProps<typeof NavLinks>, "search">) {
+  const search = useSearchParams();
+  return <NavLinks {...props} search={new URLSearchParams(search)} />;
 }

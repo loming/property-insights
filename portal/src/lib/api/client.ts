@@ -12,14 +12,26 @@ export type FetchOptions = {
   revalidate?: number;
   tags?: string[];
   timeoutMs?: number;
+  /** The Accept header; a download asks for its own type, or Spring answers 406. */
+  accept?: string;
 };
+
+/** A backend's JSON answer; see apiResponse. */
+export async function apiFetch<T>(service: Service, path: string, options: FetchOptions = {}): Promise<T> {
+  const response = await apiResponse(service, path, options);
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return (await response.json()) as T;
+}
 
 /**
  * The one way server code reaches the backends: over the compose network, never through the gateway.
  * Sends an X-Request-ID that the backends log and pass on to ml-api, and turns any failure into an
- * ApiError carrying the backend's problem+json.
+ * ApiError carrying the backend's problem+json. Returns the successful response unread, so a download
+ * can be streamed on.
  */
-export async function apiFetch<T>(service: Service, path: string, options: FetchOptions = {}): Promise<T> {
+export async function apiResponse(service: Service, path: string, options: FetchOptions = {}): Promise<Response> {
   // Request time only: no page can prerender backend data during `next build` (doc 02, E2).
   await connection();
   const env = getServerEnv();
@@ -36,7 +48,7 @@ export async function apiFetch<T>(service: Service, path: string, options: Fetch
     response = await fetch(`${base.replace(/\/+$/, "")}${path}`, {
       method: options.method ?? "GET",
       headers: {
-        Accept: "application/json",
+        Accept: options.accept ?? "application/json",
         "X-Request-ID": requestId,
         ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
       },
@@ -62,10 +74,7 @@ export async function apiFetch<T>(service: Service, path: string, options: Fetch
   if (!response.ok) {
     throw new ApiError(await readProblem(response, requestId), service);
   }
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return (await response.json()) as T;
+  return response;
 }
 
 async function readProblem(response: Response, requestId: string): Promise<Problem> {
