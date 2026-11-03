@@ -40,7 +40,8 @@ test.describe("the shell", () => {
 
     await apps.getByRole("link", { name: "Market" }).click();
     await expect(page).toHaveURL(/\/market$/);
-    await expect(page.getByText("Median price")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Market dashboard" })).toBeVisible();
+    await expect(page.getByRole("term").filter({ hasText: "Median price" })).toBeVisible();
   });
 
   test("an unknown address gets the not-found page", async ({ page }) => {
@@ -57,7 +58,7 @@ test.describe("the shell", () => {
 
   test("fits a 375 px phone without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
-    for (const path of ["/", "/estimator", "/estimator/history", "/market"]) {
+    for (const path of ["/", "/estimator", "/estimator/history", "/market", "/market/data", "/market/what-if"]) {
       await page.goto(path);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, path).toBeLessThanOrEqual(0);
@@ -72,6 +73,7 @@ test.describe("accessibility (axe, WCAG 2.2 AA)", () => {
     "/estimator/history",
     "/estimator/compare",
     "/market",
+    "/market/data",
     "/market/what-if",
     "/no-such-page",
   ]) {
