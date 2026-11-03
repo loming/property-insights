@@ -14,7 +14,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 
 The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
 
-> **Status: Task 1 and both Task 2 backends are complete** (`ml-api`, `estimator-api`, `market-api`), in both sets behind the gateway. The portal lands next; until it arrives, the site root opens Task 1's Swagger UI.
+> **Status: Task 1, both Task 2 backends and the portal's foundation are complete**, in both sets behind the gateway. The portal's two apps get their full screens next (the estimate form, history and comparison; the market dashboard, data table and what-if).
 
 ## Quick start
 
@@ -28,8 +28,8 @@ Then open:
 
 | What | URL |
 |---|---|
+| Portal (Task 2) | http://localhost:8130/ |
 | Task 1 Swagger (`ml-api`) | http://localhost:8130/ml-api/docs |
-| Portal (Task 2, coming) | http://localhost:8130/ |
 | App 1 backend Swagger (`estimator-api`) | http://localhost:8130/estimator-api/docs |
 | App 2 backend Swagger (`market-api`) | http://localhost:8130/market-api/swagger-ui.html |
 
@@ -126,6 +126,29 @@ Every statistics endpoint and export takes the same snake_case segment filters: 
 docker run --rm -v "${PWD}:/repo" -v market-api-m2:/root/.m2 -w /repo/market-api eclipse-temurin:21.0.13_9-jdk-resolute sh mvnw -B verify
 ```
 
+## Task 2 portal (`portal`)
+
+Next.js 16.4 (App Router, React 19.3) with Tailwind 4 and shadcn/ui on Radix. One portal hosts both apps: `/estimator` (App 1) and `/market` (App 2), each with its own layout, sub-navigation, loading skeletons, error boundary and not-found page.
+
+- **Independent apps.** Server code reaches each backend directly over the compose network, never through the gateway. App 1's code may only use `estimator-api`, App 2's only `market-api`, and an ESLint rule rejects cross-app imports. With either backend stopped, that app shows its own error panel (with "Try again", which re-fetches) while the shell and the other app keep working; the browser tests check this.
+- **Data loading.** Pages load in Server Components through one server-only fetch wrapper. It waits for the request (so nothing is prerendered during `docker build`), sends a request ID, times out, and turns any failure into the backend's problem+json. Caching is chosen per data type: model info for an hour, market aggregates for 5 minutes, live status never.
+- **One image, two sets.** The set (`APP_VARIANT`) and the backend URLs are server-only runtime variables, validated on first use, so the same image serves the brief set and the Ridge set; the header shows which, with a link to the other.
+- **Accessibility.** WCAG 2.2 AA is the target: skip link, landmarks, `aria-current` navigation, visible focus with 3:1 contrast, colour never the only signal, focus kept clear of the sticky header, and page transitions (React's `<ViewTransition>`) that switch off under `prefers-reduced-motion`. axe runs on every page in CI.
+
+**Develop and test** (Node 24.22.2, see `.nvmrc`), with the stack running for the browser tests:
+
+```bash
+cd portal
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npx playwright install chromium
+npm run e2e
+```
+
+For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway (`http://localhost:8130/estimator-api` and `http://localhost:8130/market-api`).
+
 ## Repository layout
 
 ```text
@@ -134,7 +157,7 @@ docker run --rm -v "${PWD}:/repo" -v market-api-m2:/root/.m2 -w /repo/market-api
 ├── ml-api/          # Task 1: FastAPI + scikit-learn
 ├── estimator-api/   # Task 2, App 1 backend: FastAPI + SQLite
 ├── market-api/      # Task 2, App 2 backend: Spring Boot 3.4.4 / Java 21
-├── portal/          # Task 2: Next.js App Router portal                        (Phases 4–6)
+├── portal/          # Task 2: Next.js App Router portal
 └── docs/            # architecture, decisions (ADRs), demo script, hosting
 ```
 
