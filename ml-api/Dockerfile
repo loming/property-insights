@@ -23,7 +23,10 @@ RUN /app/.venv/bin/python -m ml_api.training.train \
     --data /data/house_prices.csv --out /app/artifacts --kind "${MODEL_KIND}"
 
 FROM ${PYTHON_IMAGE} AS runtime
-RUN useradd --create-home --uid 10001 app
+# The base image's pip, and the copy ensurepip keeps, are never used here: both go, with their advisories.
+RUN useradd --create-home --uid 10001 app \
+    && python -m pip uninstall --yes --quiet --root-user-action=ignore pip \
+    && python -c "import ensurepip, pathlib, shutil; shutil.rmtree(pathlib.Path(ensurepip.__file__).parent / '_bundled')"
 # Only the virtualenv (with the package installed) and the trained artifacts: no uv, sources or tests.
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:${PATH}" \

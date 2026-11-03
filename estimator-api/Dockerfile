@@ -19,10 +19,13 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev --no-edi
 
 FROM ${PYTHON_IMAGE} AS runtime
 # /data is created and owned by the app user here, so an empty named volume mounted on it picks up
-# that ownership and the non-root process can write the database (doc 02, C7).
+# that ownership and the non-root process can write the database (doc 02, C7). The base image's pip, and
+# the copy ensurepip keeps, are never used here: both go, with their advisories.
 RUN useradd --create-home --uid 10001 app \
     && mkdir /data \
-    && chown app:app /data
+    && chown app:app /data \
+    && python -m pip uninstall --yes --quiet --root-user-action=ignore pip \
+    && python -c "import ensurepip, pathlib, shutil; shutil.rmtree(pathlib.Path(ensurepip.__file__).parent / '_bundled')"
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:${PATH}" \
     DATABASE_URL=sqlite+aiosqlite:////data/estimates.db \
