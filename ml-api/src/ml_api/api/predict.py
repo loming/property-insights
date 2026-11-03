@@ -73,8 +73,14 @@ def predict(
 def predict_batch(
     body: Annotated[
         BatchRequest,
-        Body(openapi_examples={"test_csv": {"summary": "The 10 rows of the provided test file",
-                                            "value": {"items": EXAMPLE_BATCH}}}),
+        Body(
+            openapi_examples={
+                "test_csv": {
+                    "summary": "The 10 rows of the provided test file",
+                    "value": {"items": EXAMPLE_BATCH},
+                }
+            }
+        ),
     ],
     store: Store,
 ) -> BatchResponse:

@@ -49,7 +49,8 @@ class ModelStore:
                     code="OUTSIDE_TRAINING_RANGE",
                     field=f.name,
                     value=row[f.name],
-                    message=f"Training data covers {f.training_min:g}–{f.training_max:g}; this estimate extrapolates",
+                    message=f"Training data covers {f.training_min:g}–{f.training_max:g}; "
+                    "this estimate extrapolates",
                 )
                 for f in self.info.features
                 if not f.training_min <= row[f.name] <= f.training_max
@@ -59,8 +60,9 @@ class ModelStore:
                     PredictionWarning(
                         code="UNUSUAL_COMBINATION",
                         value=round(float(hat), 3),
-                        message=f"This combination of features is unlike any home in the training data "
-                        f"(leverage {hat:.2f}, training maximum {threshold:.2f}); treat the estimate with caution",
+                        message="This combination of features is unlike any home in the training data "
+                        f"(leverage {hat:.2f}, training maximum {threshold:.2f}); "
+                        "treat the estimate with caution",
                     )
                 )
             result.append(found)

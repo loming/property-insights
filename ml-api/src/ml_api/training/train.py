@@ -22,7 +22,12 @@ import sklearn
 from sklearn.base import RegressorMixin, clone
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, r2_score, root_mean_squared_error
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+    r2_score,
+    root_mean_squared_error,
+)
 from sklearn.model_selection import RepeatedKFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -95,7 +100,9 @@ def _cv_metrics(estimator: RegressorMixin, X: pd.DataFrame, y: pd.Series) -> CvM
         values = sign * scores[f"test_{key}"]
         return MeanStd(mean=float(values.mean()), std=float(values.std()))
 
-    return CvMetrics(r2=summary("r2", 1), rmse=summary("rmse", -1), mae=summary("mae", -1), mape=summary("mape", -1))
+    return CvMetrics(
+        r2=summary("r2", 1), rmse=summary("rmse", -1), mae=summary("mae", -1), mape=summary("mape", -1)
+    )
 
 
 def _point_metrics(y_true: pd.Series, y_pred: np.ndarray) -> PointMetrics:
@@ -263,7 +270,9 @@ def train(data_path: Path, out_dir: Path, kind: ModelKind, now: datetime | None 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     joblib.dump({"estimator": estimator, "leverage": leverage}, out_dir / MODEL_FILE)
-    (out_dir / INFO_FILE).write_text(json.dumps(info.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8")
+    (out_dir / INFO_FILE).write_text(
+        json.dumps(info.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+    )
     return info
 
 
@@ -278,7 +287,11 @@ def main() -> None:
     cv = info.metrics.cv
     log.info(
         "trained %s on %d rows: CV R2 %.3f, RMSE %.0f, MAE %.0f",
-        info.model_version, info.training_rows, cv.r2.mean, cv.rmse.mean, cv.mae.mean,
+        info.model_version,
+        info.training_rows,
+        cv.r2.mean,
+        cv.rmse.mean,
+        cv.mae.mean,
     )
     for c in info.coefficients:
         log.info("  %-24s %12.2f per %s", c.feature, c.per_unit, c.unit)

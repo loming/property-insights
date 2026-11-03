@@ -152,6 +152,8 @@ class ModelInfo(BaseModel):
     metrics: Metrics
     features: list[FeatureInfo]
     price_distribution: PriceDistribution
-    leverage_threshold: float = Field(description="UNUSUAL_COMBINATION fires above this (the training maximum)")
+    leverage_threshold: float = Field(
+        description="UNUSUAL_COMBINATION fires above this (the training maximum)"
+    )
     selection: Selection | None = Field(None, description="Ridge only: how alpha was chosen")
     notes: list[str]
