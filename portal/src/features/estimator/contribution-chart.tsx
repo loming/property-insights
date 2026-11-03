@@ -72,7 +72,13 @@ export function ContributionChart({
               <Cell key={row.feature} fill={row.value >= 0 ? "var(--chart-3)" : "#d55e00"} />
             ))}
             {/* The sign is written out too: colour is never the only cue (WCAG 1.4.1). */}
-            <LabelList dataKey="value" position="right" formatter={(v) => fmt.signedPrice(Number(v))} fontSize={11} />
+            <LabelList
+              dataKey="value"
+              position="right"
+              formatter={(v) => fmt.signedPrice(Number(v))}
+              fontSize={11}
+              fill="var(--foreground)"
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

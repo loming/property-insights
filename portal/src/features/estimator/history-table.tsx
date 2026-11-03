@@ -13,7 +13,9 @@ import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
 
 import { deleteEstimateAction } from "./actions";
+import { AddToCompareButton } from "./add-to-compare-button";
 import { estimateTitle, homeSummary } from "./estimate-title";
+import { useCompareTray } from "./hooks/use-compare-tray";
 
 /**
  * E-4: one page of the history. A deleted row goes at once (useOptimistic) and comes back with a
@@ -27,6 +29,7 @@ export function HistoryTable({ estimates }: { estimates: Estimate[] }) {
   const [status, setStatus] = useState("");
   const [failure, setFailure] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const removeFromTray = useCompareTray((state) => state.remove);
 
   const cancel = (id: string) => {
     setConfirming(null);
@@ -43,6 +46,7 @@ export function HistoryTable({ estimates }: { estimates: Estimate[] }) {
       removeRow(estimate.id);
       const outcome = await deleteEstimateAction(estimate.id);
       if (outcome.ok) {
+        removeFromTray(estimate.id);
         setStatus(`Deleted ${title}.`);
       } else {
         setFailure(`${title} wasn't deleted. ${outcome.message}`);
@@ -102,7 +106,8 @@ export function HistoryTable({ estimates }: { estimates: Estimate[] }) {
                   <TableCell className="px-3 text-muted-foreground">
                     <DateTime iso={estimate.created_at} />
                   </TableCell>
-                  <TableCell className="px-3 text-right">
+                  <TableCell className="space-x-2 px-3 text-right">
+                    {confirming !== estimate.id && <AddToCompareButton id={estimate.id} title={title} />}
                     {confirming === estimate.id ? (
                       <div
                         role="group"

@@ -7,7 +7,9 @@ import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
 import { FEATURES, FEATURE_BY_NAME, type FeatureName, formatFeatureValue } from "@/lib/features";
 
+import { AddToCompareButton } from "./add-to-compare-button";
 import { ContributionChart } from "./contribution-chart";
+import { estimateTitle } from "./estimate-title";
 import { type PriceDistribution, PriceDistributionChart } from "./price-distribution-chart";
 
 /** E-3: the result as a table and as charts, with the model's warnings first. */
@@ -29,7 +31,10 @@ export function EstimateResult({
         <h2 id={`result-${estimate.id}`} className="font-heading text-lg font-semibold">
           {estimate.label ?? "Estimated price"}
         </h2>
-        <p className="font-heading text-4xl font-semibold tabular-nums">{fmt.price(estimate.predicted_price)}</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p className="font-heading text-4xl font-semibold tabular-nums">{fmt.price(estimate.predicted_price)}</p>
+          <AddToCompareButton id={estimate.id} title={estimateTitle(estimate)} />
+        </div>
         <p className="text-sm text-muted-foreground">
           Model {estimate.model_version}
           {justSaved && (
