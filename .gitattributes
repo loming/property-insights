@@ -1,0 +1,16 @@
+# LF everywhere: scripts, Dockerfiles, CSVs and configs all end up in Linux images, and this
+# PC has core.autocrlf=true, which would otherwise check them out with CRLF (doc 02, A7).
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.jar binary
+*.woff2 binary
+*.joblib binary
