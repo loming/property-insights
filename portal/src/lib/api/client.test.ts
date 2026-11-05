@@ -53,6 +53,15 @@ describe("apiFetch", () => {
     expect(init.next).toEqual({ revalidate: 3600, tags: ["model-info"] });
   });
 
+  it("sends cached calls the same headers every time, or the data cache would never hit", async () => {
+    fetchMock.mockImplementation(async () => json({}));
+    await apiFetch("market", "/api/v1/market/summary", { revalidate: 300 });
+    await apiFetch("market", "/api/v1/market/summary", { revalidate: 300 });
+    const [first, second] = fetchMock.mock.calls.map(([, init]) => init!.headers);
+    expect(first).toEqual(second);
+    expect(first).not.toHaveProperty("X-Request-ID");
+  });
+
   it("sends JSON bodies", async () => {
     fetchMock.mockResolvedValue(json({ id: "x" }, 201));
     await apiFetch("estimator", "/api/v1/estimates", { method: "POST", body: { label: "a" } });
