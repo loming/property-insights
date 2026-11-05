@@ -24,6 +24,7 @@ The portal is scaffolded with `--no-cache-components` and uses the classic model
   | Market aggregates | 5 minutes, tag `market` |
   | Live service status, history and comparisons | Not cached (`no-store`) |
 
+- **Cached calls send no request ID.** Next.js keys its data cache on the request's headers, so a new `X-Request-ID` per call would miss every time. The backends make their own ID for these calls.
 - **Writes refresh the history.** The Server Actions that create and delete estimates call `revalidatePath("/estimator/history")`.
 - **The set is read at runtime.** `APP_VARIANT` is read only after `connection()`, and passed down as a prop.
 

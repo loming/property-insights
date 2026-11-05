@@ -85,6 +85,25 @@ test.describe("market data", () => {
     await expectNoAxeViolations(page);
   });
 
+  test("reloading the page reuses the portal's data cache instead of calling market-api again", async ({ request }) => {
+    const calls = async () => {
+      const response = await request.get(
+        "/market-api/actuator/metrics/http.server.requests?tag=uri:/api/v1/market/filter-options",
+      );
+      const { measurements } = (await response.json()) as { measurements: { statistic: string; value: number }[] };
+      return measurements.find((m) => m.statistic === "COUNT")!.value;
+    };
+
+    // This load fills the cache or, if it has expired, refreshes it in the background: let that finish.
+    await request.get("/market/data");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const before = await calls();
+    for (let i = 0; i < 3; i++) {
+      expect((await request.get("/market/data")).status()).toBe(200);
+    }
+    expect(await calls()).toBe(before);
+  });
+
   test("the export Route Handler streams the PDF and refuses unknown formats", async ({ request }) => {
     const pdf = await request.get("/api/market/export/pdf?bedrooms=2&sort=price,desc");
     expect(pdf.status()).toBe(200);

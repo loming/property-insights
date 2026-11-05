@@ -28,7 +28,7 @@ export function ExportMenu({ query, count }: { query: URLSearchParams; count: nu
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" disabled={pending !== null || count === 0} aria-describedby={noteId}>
-              {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Download aria-hidden="true" />}
+              {pending ? <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" /> : <Download aria-hidden="true" />}
               {pending ? "Preparing the file…" : "Export"}
             </Button>
           </DropdownMenuTrigger>

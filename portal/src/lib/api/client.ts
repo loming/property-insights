@@ -27,9 +27,9 @@ export async function apiFetch<T>(service: Service, path: string, options: Fetch
 
 /**
  * The one way server code reaches the backends: over the compose network, never through the gateway.
- * Sends an X-Request-ID that the backends log and pass on to ml-api, and turns any failure into an
- * ApiError carrying the backend's problem+json. Returns the successful response unread, so a download
- * can be streamed on.
+ * Uncached calls send an X-Request-ID that the backends log and pass on to ml-api; for cached calls the
+ * backends make their own. Turns any failure into an ApiError carrying the backend's problem+json.
+ * Returns the successful response unread, so a download can be streamed on.
  */
 export async function apiResponse(service: Service, path: string, options: FetchOptions = {}): Promise<Response> {
   // Request time only: no page can prerender backend data during `next build` (doc 02, E2).
@@ -49,7 +49,8 @@ export async function apiResponse(service: Service, path: string, options: Fetch
       method: options.method ?? "GET",
       headers: {
         Accept: options.accept ?? "application/json",
-        "X-Request-ID": requestId,
+        // Next's data cache keys on the headers: a new ID on a cached call would miss every time.
+        ...(options.revalidate === undefined ? { "X-Request-ID": requestId } : {}),
         ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),

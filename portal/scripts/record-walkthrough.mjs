@@ -220,18 +220,18 @@ try {
 
   // 6. Resilience
   if (process.env.RESILIENCE === "1") {
-    await caption("Resilience: ml-api is stopped (docker compose stop ml-api)â€¦");
+    await caption("Resilience: ml-api is stopped (docker compose stop ml-api)…");
     execSync("docker compose stop ml-api", { cwd: REPO, stdio: "ignore" });
-    await go(`${BRIEF}/estimator`, "â€¦the brief set's estimator says the pricing service isn't responding, and saves nothingâ€¦");
+    await go(`${BRIEF}/estimator`, "…the brief set's estimator says the pricing service isn't responding, and saves nothing…");
     await page.getByRole("button", { name: "Estimate price" }).click();
     await page.getByRole("alert").filter({ hasText: "No estimate this time" }).waitFor();
     await pause(3500);
-    await go(`${BRIEF}/market`, "â€¦its market dashboard keeps working: it doesn't need the modelâ€¦");
-    await go(`${BRIEF}/market/what-if?baseline=typical-3`, "â€¦what-if still shows the prices market-api has cached (10 minutes)â€¦");
+    await go(`${BRIEF}/market`, "…its market dashboard keeps working: it doesn't need the model…");
+    await go(`${BRIEF}/market/what-if?baseline=typical-3`, "…what-if still shows the prices market-api has cached (10 minutes)…");
     await page.getByRole("slider", { name: "Year built" }).click();
     for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowLeft");
     await page.getByText("The model isn't answering right now").waitFor();
-    await caption("â€¦but a new change needs the model, and the page says it isn't answering. The Ridge set is untouched.");
+    await caption("…but a new change needs the model, and the page says it isn't answering. The Ridge set is untouched.");
     await pause(4000);
     execSync("docker compose start ml-api", { cwd: REPO, stdio: "ignore" });
     execSync("docker compose up -d --wait ml-api", { cwd: REPO, stdio: "ignore" });

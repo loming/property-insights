@@ -46,6 +46,22 @@ test.describe("estimate form", () => {
     await expectNoAxeViolations(page);
   });
 
+  test("a click straight after typing a bad value isn't lost, though the field's message moves the buttons", async ({
+    page,
+  }) => {
+    await page.goto("/estimator");
+    const rating = page.getByLabel(/^School rating/);
+    await rating.fill("11");
+    await page.getByRole("button", { name: "Estimate price" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "One field needs attention" })).toBeVisible();
+    await expect(rating).toBeFocused();
+
+    await page.reload();
+    await rating.fill("11");
+    await page.getByRole("button", { name: "Reset to the example home" }).click();
+    await expect(rating).toHaveValue(String(EXAMPLE.school_rating));
+  });
+
   test("says when the model can't price a home", async ({ page }) => {
     // Valid values, but plain OLS predicts $0 or less for them (its living-area coefficient is negative).
     await page.goto("/estimator");
