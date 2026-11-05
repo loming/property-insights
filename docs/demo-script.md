@@ -106,4 +106,4 @@ Delete the demo's estimates from both sets' History pages.
 | The tunnel or the network is down | `localhost:8130` and `ridge.localhost:8130` on the demo PC |
 | A container is unhealthy | `docker compose up -d --wait`, then `docker compose logs <service>` |
 | Too many requests (429) | Wait two seconds. The limits are per visitor and generous |
-| The PC itself fails | The recorded walkthrough: a silent, captioned run through steps 3–6, made by [`portal/scripts/record-walkthrough.mjs`](../portal/scripts/record-walkthrough.mjs). Re-record it after any change to the UI. |
+| The PC itself fails | The recorded walkthrough: a silent, captioned run through steps 3–6, made by [`portal/scripts/record-walkthrough.mjs`](../portal/scripts/record-walkthrough.mjs). It checks WCAG 2.2 AA as it goes, with axe on each page and state and scripted checks of what axe can't judge, and ends on a scorecard of what that run measured. Re-record it after any change to the UI. |
