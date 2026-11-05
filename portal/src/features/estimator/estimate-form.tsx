@@ -27,6 +27,12 @@ type FormFailure = Extract<ActionResult<never>, { kind: "outside-model-domain" |
 const fieldId = (path: string) => `field-${path.replace(".", "-")}`;
 
 /**
+ * Leaving a field validates it, and a new message moves the buttons below. Pressing one keeps focus in the
+ * field, so the button can't move out from under the pointer and lose the click.
+ */
+const keepFocusOnPress = (event: React.MouseEvent) => event.preventDefault();
+
+/**
  * E-1/E-2: every model field, validated in the browser with the same schema the Server Action uses.
  * Errors show inline and in a summary, and focus moves to the first invalid field; the server's field
  * errors land on the same fields. A home the model can't price gets a form-level message.
@@ -155,7 +161,7 @@ export function EstimateForm({
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" size="lg" disabled={pending || !hydrated}>
+          <Button type="submit" size="lg" disabled={pending || !hydrated} onMouseDown={keepFocusOnPress}>
             {pending && <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />}
             {pending ? "Estimating…" : "Estimate price"}
           </Button>
@@ -163,6 +169,7 @@ export function EstimateForm({
             type="button"
             variant="outline"
             size="lg"
+            onMouseDown={keepFocusOnPress}
             onClick={() => {
               form.reset({ label: "", features: EXAMPLE_FEATURES });
               setFailure(null);
