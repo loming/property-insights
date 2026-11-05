@@ -3,9 +3,9 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { deleteTaggedEstimates, saveEstimate } from "./support";
 
 /**
- * Both apps with the keyboard alone (WCAG 2.1.1, 2.4.3, 2.4.7 and 2.4.11): every step is a key press, and
- * each checks where focus lands. Every stop on the way must show a focus indicator and sit on screen, not
- * behind the sticky header or the compare tray.
+ * Both apps with the keyboard alone (WCAG 1.4.11, 2.1.1, 2.1.2, 2.4.3, 2.4.7 and 2.4.11): every step is a key
+ * press, and each checks where focus lands. Every stop on the way must show a focus indicator with 3:1 contrast
+ * and sit on screen, not behind the sticky header or the compare tray.
  */
 
 const RUN = `e2e-kbd-${Date.now().toString(36)}`;
@@ -20,7 +20,7 @@ function inspectFocus(target: Element) {
   // Past the last stop, focus leaves the page for the browser's own controls, then comes back round.
   // Containers that take focus from script (the main landmark, a table) aren't stops of their own.
   if (!el || el.tabIndex < 0) {
-    return { arrived: false, problem: null };
+    return { arrived: false, problem: null, isStop: false };
   }
   const describe = (node: Element) => node.outerHTML.slice(0, 80);
   const style = getComputedStyle(el);
@@ -37,7 +37,56 @@ function inspectFocus(target: Element) {
         : onTop && !el.contains(onTop) && !onTop.contains(el)
           ? `${describe(el)} is covered by ${describe(onTop)}`
           : null;
-  return { arrived: el === target, problem };
+  return { arrived: el === target, problem, isStop: true };
+}
+
+/**
+ * Runs in the page: the focused element's name, and how its outline or ring contrasts with what's behind it.
+ * Axe doesn't measure this. Transitions are finished first, or a ring fading in reads fainter than it ends up.
+ */
+function focusContrast() {
+  const el = document.activeElement as HTMLElement;
+  for (const animation of el.getAnimations()) {
+    if (animation instanceof CSSTransition) {
+      animation.finish();
+    }
+  }
+  const style = getComputedStyle(el);
+  const colours = style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0 ? [style.outlineColor] : [];
+  for (const shadow of style.boxShadow.split(/,(?![^(]*\))/)) {
+    const colour = shadow.match(/(?:rgba?|oklch|oklab|lab|lch|color)\([^)]*\)/)?.[0];
+    // A shadow with no spread is a drop shadow, not a ring.
+    if (colour && parseFloat(shadow.replace(colour, "").trim().split(/\s+/)[3] ?? "0") > 0) {
+      colours.push(colour);
+    }
+  }
+  let behind = el.parentElement;
+  while (behind && getComputedStyle(behind).backgroundColor === "rgba(0, 0, 0, 0)") {
+    behind = behind.parentElement;
+  }
+  const backdrop = behind ? getComputedStyle(behind).backgroundColor : "#fff";
+  const canvas = Object.assign(document.createElement("canvas"), { width: 1, height: 1 });
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  const luminance = (...layers: string[]) => {
+    for (const layer of layers) {
+      ctx.fillStyle = layer;
+      ctx.fillRect(0, 0, 1, 1);
+    }
+    const [r, g, b] = [...ctx.getImageData(0, 0, 1, 1).data].map((v) =>
+      v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4,
+    );
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const ratio = (colour: string) => {
+    const [high, low] = [luminance("#fff", backdrop, colour), luminance("#fff", backdrop)].sort((a, b) => b - a);
+    return (high! + 0.05) / (low! + 0.05);
+  };
+  return { name: el.outerHTML.slice(0, 80), contrast: Math.max(0, ...colours.map(ratio)) };
+}
+
+async function expectFocusContrast(page: Page) {
+  const { name, contrast } = await page.evaluate(focusContrast);
+  expect(contrast, `the focus indicator's contrast on ${name}`).toBeGreaterThanOrEqual(3);
 }
 
 /** Presses Tab (or Shift+Tab) until `target` has focus, checking every stop on the way. */
@@ -46,8 +95,11 @@ async function tabTo(page: Page, target: Locator, { backwards = false } = {}) {
   const handle = await target.elementHandle();
   for (let presses = 0; presses < 80; presses++) {
     await page.keyboard.press(backwards ? "Shift+Tab" : "Tab");
-    const { arrived, problem } = await page.evaluate(inspectFocus, handle!);
+    const { arrived, problem, isStop } = await page.evaluate(inspectFocus, handle!);
     expect(problem).toBeNull();
+    if (isStop) {
+      await expectFocusContrast(page);
+    }
     if (arrived) {
       return;
     }
@@ -56,6 +108,17 @@ async function tabTo(page: Page, target: Locator, { backwards = false } = {}) {
 }
 
 test.describe("keyboard only", () => {
+  test("every page: Tab comes back round, and every stop can be seen", async ({ page }) => {
+    test.setTimeout(90_000);
+    for (const path of ["/", "/estimator", "/estimator/history", "/estimator/compare", "/market", "/market/data", "/market/what-if"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      const skip = page.getByRole("link", { name: "Skip to main content" });
+      await tabTo(page, skip);
+      await tabTo(page, skip);
+    }
+  });
+
   test("estimate: Enter submits, an error takes focus, and the result goes to the comparison", async ({ page }) => {
     const label = `${RUN} form`;
     await page.goto("/estimator");
@@ -71,6 +134,7 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("alert").filter({ hasText: "One field needs attention" })).toBeVisible();
     await expect(area).toBeFocused();
+    await expectFocusContrast(page);
 
     await page.keyboard.type("1550");
     await page.keyboard.press("Enter");
@@ -101,6 +165,7 @@ test.describe("keyboard only", () => {
     await page.keyboard.press("Enter");
     await page.keyboard.press("Shift+Tab");
     await expect(confirm.getByRole("button", { name: "Delete", exact: true })).toBeFocused();
+    await expectFocusContrast(page);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("link", { name: title })).toHaveCount(0);
     await expect(page.getByRole("table")).toBeFocused();
@@ -182,6 +247,7 @@ test.describe("keyboard only", () => {
     await expect(page.getByRole("menuitem", { name: /CSV/ })).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("menuitem", { name: /PDF/ })).toBeFocused();
+    await expectFocusContrast(page);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("menu")).toHaveCount(0);
     await expect(exportButton).toBeFocused();

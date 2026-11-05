@@ -313,10 +313,12 @@ For `npm run dev`, point `ESTIMATOR_API_URL` and `MARKET_API_URL` at the gateway
 
 **Accessibility (WCAG 2.2 AA).**
 - **Automated checks.** axe (`wcag2a` to `wcag22aa`) runs on every page and along both apps' flows.
-- **Keyboard only.** [`portal/e2e/keyboard.spec.ts`](portal/e2e/keyboard.spec.ts) drives both apps with the keyboard alone: the estimate form and its error summary, the history's delete confirmation, the comparison tray, the market filters, sorting, paging, the export menu and the what-if sliders. Every stop on the way must show a focus indicator and stay clear of the sticky header and the comparison tray. This pass found, and the fixes cover:
+- **Keyboard only.** [`portal/e2e/keyboard.spec.ts`](portal/e2e/keyboard.spec.ts) drives both apps with the keyboard alone: the estimate form and its error summary, the history's delete confirmation, the comparison tray, the market filters, sorting, paging, the export menu and the what-if sliders. Every stop on the way must show a focus indicator with 3:1 contrast and stay clear of the sticky header and the comparison tray. This pass found, and the fixes cover:
   - the what-if resets dropping focus;
   - the tray hiding a focused row;
-  - an unpadded skip link.
+  - an unpadded skip link;
+  - focus rings at half strength, only 2.06:1.
+- **On video.** [`portal/scripts/record-walkthrough.mjs`](portal/scripts/record-walkthrough.mjs) records the demo and checks WCAG as it goes, ending on a scorecard of what that run measured. It adds what CI doesn't run: 320 px reflow, 200% zoom and text spacing for clipped text, chart label contrast, and a slider moved without dragging.
 - **Small screens.** Every page reflows without sideways scrolling at 320 px (400% zoom), 375 px, 768 px and 1024 px.
 
 **Dependencies and images.**
