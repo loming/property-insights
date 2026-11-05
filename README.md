@@ -12,7 +12,7 @@ Everything runs with Docker Compose behind a single nginx gateway port. Two sets
 | Brief | Plain linear regression, as the brief asks | http://localhost:8130 | `docker compose up` |
 | Ridge | Ridge regression whose size and quality coefficients must be positive | http://ridge.localhost:8130 | `docker compose --profile ridge up` |
 
-The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense; the reasons are in the model's `/model-info` notes.
+The brief set does exactly what was asked. The Ridge set shows what changes when the model's coefficients have to make sense: [Why there's a Ridge set](#why-theres-a-ridge-set) has the reasons, an example and both sets' results on the test file.
 
 > **Status: complete.** Task 1 and both Task 2 apps (the estimator and the market analysis) run with their backends, in both sets behind the gateway, locally and at https://hsbc.loming.com and https://hsbc-ridge.loming.com.
 
@@ -100,7 +100,7 @@ flowchart LR
 | Ridge | Ridge, α = 3: the most accurate α whose size and quality coefficients are all positive | 0.976 | $10.9k | $9.6k |
 | — | Predict-the-mean baseline | −0.19 | $80.5k | $70.3k |
 
-The features are strongly correlated with each other, so plain linear regression predicts well but gives square footage (−$103 per sq ft) and bedrooms negative coefficients: lot size carries the size signal instead. The brief set serves it as asked, with that explained in `/model-info`. The Ridge set gives up about $400 of RMSE for coefficients that all point the expected way.
+The features are strongly correlated with each other, so plain linear regression predicts well but gives square footage (−$103 per sq ft) and bedrooms negative coefficients: lot size carries the size signal instead. The brief set serves it as asked, with that explained in `/model-info`. [Why there's a Ridge set](#why-theres-a-ridge-set) shows what that means for a real home, and what Ridge costs.
 
 **How they're trained.** Both learn from the same file, `data/house_prices.csv`, and report its SHA-256 as `dataset_sha256` in `/model-info`. The provided test file has no prices, so it's never trained on; its 10 rows are the batch example in Swagger. Trained models live only in the images: none is committed, and a fresh clone trains its own.
 
@@ -146,6 +146,65 @@ uv sync
 uv run pytest
 uv run python -m ml_api.training.train --kind ols --out artifacts
 ```
+
+## Why there's a Ridge set
+
+The brief asks for a simple regression model, and the brief set serves exactly that. It prices homes accurately, but its coefficients give the wrong answer to "what is more of this worth?". The Ridge set shows the difference on the same data, with the same code ([ADR 0001](docs/adr/0001-plain-linear-regression-and-a-ridge-set.md)). All prices below come from the running APIs, rounded to the dollar.
+
+**The problem.** In the 50 homes, bigger homes sell for more. The smallest (980 sq ft) sold for $165,000 and the largest (2,400 sq ft) for $410,000, and 4-bedroom homes average $374k against $178k for 2 bedrooms. On its own, square footage is worth +$185 per sq ft. But the seven features rise and fall together: square footage correlates 0.99 with lot size, and its variance inflation factor is 212. The data can't separate their effects, so plain linear regression gives the size signal to lot size and leaves square footage at −$103 per sq ft and bedrooms at −$8,448 each.
+
+**An example.** Take the first home in the test file (1,550 sq ft, 3 bedrooms), which both models price at about $250,900, and change one thing:
+
+| Change | Brief set | Ridge set |
+|---|---:|---:|
+| None | $250,880 | $250,932 |
+| 200 sq ft more living area | $230,296 (−$20,583) | $254,679 (+$3,746) |
+| One more bedroom | $242,432 (−$8,448) | $257,102 (+$6,169) |
+
+The API raises no warning on either change, so the price drop looks like a real answer; the portal's what-if page has to explain it. Go further and the brief set runs out of price. The `too_big` example in Swagger, a median home at 4,100 sq ft, comes out at or below $0, so the brief set returns a 422 `outside-model-domain`. The Ridge set prices the same home at $301,054, with warnings that it's outside the training data.
+
+The predictions still hold up because real homes rarely change one feature at a time. In this data, more living area comes with a bigger lot, and lot size's coefficient more than makes up for the negative one on square footage. The trouble only shows when one feature moves alone, which is what the what-if page does.
+
+**The solution.** Ridge adds a penalty for large coefficients, so correlated features share the signal instead of offsetting each other with large opposite values. Training tries 9 penalty strengths (α) and keeps those that make every size and quality coefficient positive. The most accurate of those is α = 3:
+
+| Coefficient | Brief set | Ridge set |
+|---|---:|---:|
+| Living area, per sq ft | −$103 | +$19 |
+| Bedrooms, each | −$8,448 | +$6,169 |
+| Bathrooms, each | +$7,437 | +$16,917 |
+| Year built, per year | +$112 | +$92 |
+| Lot size, per sq ft | +$39 | +$9 |
+| Distance to centre, per mile | +$16,810 | +$11,880 |
+| School rating, per point | +$21,062 | +$17,214 |
+
+The coefficients are steadier too. Across the 100 fits of cross-validation, year built swings from −$2,844 to +$3,206 per year under plain linear regression, and stays between −$22 and +$563 under Ridge. RMSE also varies less between folds, with a standard deviation of $1.4k against $3.9k.
+
+**What it costs, and what it doesn't fix.**
+- **Some accuracy.** Cross-validated RMSE is about $400 worse ($10.9k against $10.5k), and MAE about $2,100 worse ($9.6k against $7.6k).
+- **The sign rule is a choice.** Accuracy alone wouldn't pick α = 3. α = 0.3 has the lowest RMSE of any model here ($9.6k), but leaves square footage, bedrooms and year built negative.
+- **Distance still points the wrong way.** Each mile from the centre adds $11,880, because the further-out homes in this data are larger and newer. Ridge can't remove that confounding, so the sign rule doesn't cover distance.
+- **+$19 per sq ft isn't a valuation.** It's one share of a size signal spread over several features. Read the Ridge set's what-ifs for their direction, not as the price of an extension.
+
+**Results on the test file.** These are the 10 homes in [`data/test_data_for_prediction.csv`](data/test_data_for_prediction.csv), sent through `POST /predict/batch` on each set (the `test_csv` example in Swagger):
+
+| Home | Living area (sq ft) | Beds | Baths | Built | Lot (sq ft) | Miles to centre | School rating | Brief set | Ridge set | Ridge − brief |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1,550 | 3 | 2 | 1997 | 6,800 | 4.1 | 7.6 | $250,880 | $250,932 | +$53 |
+| 2 | 2,200 | 4 | 2.5 | 2008 | 9,600 | 7.0 | 8.8 | $364,552 | $359,868 | −$4,683 |
+| 3 | 1,180 | 2 | 1 | 1982 | 5,100 | 2.5 | 6.7 | $175,624 | $169,243 | −$6,380 |
+| 4 | 1,870 | 3 | 2.5 | 2001 | 7,900 | 5.5 | 8.3 | $303,621 | $304,654 | +$1,033 |
+| 5 | 1,430 | 3 | 1.5 | 1990 | 6,200 | 3.3 | 7.2 | $213,272 | $217,619 | +$4,347 |
+| 6 | 2,300 | 4 | 3 | 2013 | 10,300 | 8.0 | 9.2 | $411,285 | $395,928 | −$15,356 |
+| 7 | 1,650 | 3 | 2 | 1999 | 7,100 | 4.2 | 7.8 | $258,496 | $260,407 | +$1,911 |
+| 8 | 1,020 | 2 | 1 | 1979 | 4,400 | 2.0 | 6.5 | $151,627 | $150,085 | −$1,542 |
+| 9 | 2,100 | 4 | 2.5 | 2005 | 9,200 | 6.8 | 8.6 | $351,212 | $348,185 | −$3,027 |
+| 10 | 1,350 | 3 | 1 | 1988 | 5,700 | 3.1 | 7.0 | $190,339 | $197,014 | +$6,676 |
+
+The file has no prices, so this shows how far apart the models are, not which one is right. They're within 3.7% on every home: $4,501 apart on average, and $15,356 at most.
+
+Homes 6 and 8 fall outside the training ranges, and both sets return `OUTSIDE_TRAINING_RANGE` warnings for them. Home 6 was built in 2013 with a school rating of 9.2 (training stops at 2012 and 9.1), and home 8 is 2.0 miles out (training starts at 2.1).
+
+**In short:** to price a home like the ones in the data, either model works. When one feature moves alone, as on the what-if page, use Ridge.
 
 ## App 1 backend: the estimator API (`estimator-api`)
 
