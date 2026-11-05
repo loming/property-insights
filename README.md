@@ -21,7 +21,7 @@ More detail lives in [`docs/`](docs):
 - [Hosting](docs/hosting.md): how the public URLs are served and checked.
 - [Demo script](docs/demo-script.md): the live walkthrough.
 
-[Requirements traceability](#requirements-traceability) maps each line of the brief to its code and tests, and [Limitations and next steps](#limitations-and-next-steps) says what's left.
+[Requirements traceability](#requirements-traceability) maps each line of the brief to its code and tests, [How it was built](#how-it-was-built) shows the order of the work, and [Limitations and next steps](#limitations-and-next-steps) says what's left.
 
 ## Quick start
 
@@ -92,7 +92,7 @@ flowchart LR
 | `GET /model-info` | Model type and version, per-unit coefficients, cross-validated metrics against a predict-the-mean baseline, training ranges, and notes on reading the coefficients. |
 | `GET /health` | 200 when the model is loaded; 503 if it failed to load, so Docker marks the container unhealthy. |
 
-**The two models.** Both use all 7 features and are trained when the image is built (`MODEL_KIND` build arg), then evaluated with 5-fold cross-validation repeated 20 times:
+**The two models.** Both use all 7 features and are trained when the image is built (`MODEL_KIND` build arg). Each is scored with 5-fold cross-validation repeated 20 times, then refit on all 50 rows:
 
 | Set | Model | CV R² | CV RMSE | CV MAE |
 |---|---|---|---|---|
@@ -101,6 +101,36 @@ flowchart LR
 | — | Predict-the-mean baseline | −0.19 | $80.5k | $70.3k |
 
 The features are strongly correlated with each other, so plain linear regression predicts well but gives square footage (−$103 per sq ft) and bedrooms negative coefficients: lot size carries the size signal instead. The brief set serves it as asked, with that explained in `/model-info`. The Ridge set gives up about $400 of RMSE for coefficients that all point the expected way.
+
+**How they're trained.** Both learn from the same file, `data/house_prices.csv`, and report its SHA-256 as `dataset_sha256` in `/model-info`. The provided test file has no prices, so it's never trained on; its 10 rows are the batch example in Swagger. Trained models live only in the images: none is committed, and a fresh clone trains its own.
+
+```mermaid
+flowchart TD
+    csv[/"data/house_prices.csv<br/>50 homes, 7 features"/]
+    build["Docker image build<br/>MODEL_KIND per service"]
+    csv --> build
+    build --> brief
+    build --> ridge
+    subgraph brief["Brief set"]
+        direction TB
+        ols["LinearRegression<br/>MODEL_KIND=ols, no tuning"]
+        olsFit["Score, refit on all 50 rows<br/>CV RMSE $10.5k · R² 0.972"]
+        olsImage["ml-api image<br/>holds the trained model"]
+        ols --> olsFit --> olsImage
+    end
+    subgraph ridge["Ridge set"]
+        direction TB
+        alphas["Ridge with 9 alpha values<br/>MODEL_KIND=ridge"]
+        gate["Keep alphas whose size and<br/>quality signs are positive"]
+        fail(["The build fails"])
+        best["Lowest CV RMSE wins<br/>alpha = 3"]
+        ridgeFit["Score, refit on all 50 rows<br/>CV RMSE $10.9k · R² 0.976"]
+        ridgeImage["ml-api-ridge image<br/>holds the trained model"]
+        alphas --> gate
+        gate -->|none left| fail
+        gate --> best --> ridgeFit --> ridgeImage
+    end
+```
 
 **Guard rails.**
 - **Validation:** every field is required and range-checked, and unknown fields are rejected.
@@ -327,6 +357,29 @@ Each line of the brief, how it's met, and where to look. Paths are relative to e
 | TR-4a | Next.js best-practice structure | Thin route files, feature folders, a `server-only` API layer |
 | C-1 | Python 3.12+, FastAPI, Java 21, Spring Boot 3.4.4 | `python:3.12.16-slim`, Temurin 21, Spring Boot 3.4.4 exactly ([ADR 0006](docs/adr/0006-spring-boot-3-4-4-with-same-line-patches.md)) |
 | C-2 | GitHub and a live demo | This repository, `docker compose up`, the public URLs and the [demo script](docs/demo-script.md) |
+
+## How it was built
+
+In eight phases, each ending in something that could be demonstrated. `git log` shows the work in the same order, and each service got its `-ridge` twin in the phase that built it.
+
+```mermaid
+flowchart TD
+    p0["Phase 0 · Foundations<br/>repository, Compose, CI"]
+    subgraph task1["Task 1"]
+        p1["Phase 1 · ml-api<br/>models, API, gateway, URLs"]
+    end
+    subgraph task2["Task 2"]
+        p2["Phase 2 · estimator-api<br/>saved estimates in SQLite"]
+        p3["Phase 3 · market-api<br/>statistics, what-if, exports"]
+        p4["Phase 4 · Portal shell<br/>navigation, home page"]
+        p5["Phase 5 · Estimator app<br/>form, history, comparison"]
+        p6["Phase 6 · Market app<br/>dashboard, table, what-if"]
+        p2 --> p3 --> p4 --> p5 --> p6
+    end
+    p7["Phase 7 · Hardening, demo<br/>keyboard, image scan, docs"]
+    tags(["Release tags<br/>task1-v1.0, task2-v1.0"])
+    p0 --> task1 --> task2 --> p7 --> tags
+```
 
 ## Limitations and next steps
 
