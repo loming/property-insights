@@ -77,7 +77,7 @@
   --warning-foreground: oklch(0.3 0.07 60);
   --border: oklch(0.922 0 0);
   --input: oklch(0.87 0 0);
-  /* Focus rings need 3:1 against their background (WCAG 1.4.11). */
+  /* Focus rings need 3:1 against their background (WCAG 1.4.11): 4.87:1 on white as it is, but only 2.06:1 at shadcn's ring-ring/50. */
   --ring: oklch(0.55 0.15 252);
   /* Okabe-Ito: distinguishable with the common colour-vision deficiencies. */
   --chart-1: #0072b2;
@@ -189,7 +189,7 @@ html {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;

@@ -16,7 +16,7 @@ export default function Overview() {
       </div>
       <ul className="grid gap-4 sm:grid-cols-2">
         <li>
-          <Link href="/estimator" className="group block rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+          <Link href="/estimator" className="group block rounded-xl focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none">
             <Card className="h-full transition-colors group-hover:border-primary">
               <CardHeader>
                 <CardTitle>Property Value Estimator</CardTitle>
@@ -26,7 +26,7 @@ export default function Overview() {
           </Link>
         </li>
         <li>
-          <Link href="/market" className="group block rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+          <Link href="/market" className="group block rounded-xl focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none">
             <Card className="h-full transition-colors group-hover:border-primary">
               <CardHeader>
                 <CardTitle>Property Market Analysis</CardTitle>

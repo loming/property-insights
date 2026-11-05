@@ -53,7 +53,7 @@ export function NavLinks({
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   "inline-flex min-h-8 items-center rounded-md px-3 text-sm font-medium transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                  "hover:bg-accent hover:text-accent-foreground focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none",
                   current
                     ? variant === "primary"
                       ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
