@@ -113,7 +113,7 @@ try {
   await swagger("/predict", "post", { example: "4,100", pauseAfter: 4500 });
   await caption("POST /predict/batch with the 10 rows of the provided test file: predictions in input order, with warnings on rows 6 and 8.");
   await swagger("/predict/batch", "post", { pauseAfter: 4500 });
-  await go(`${RIDGE}/ml-api/docs`, "The Ridge set's ml-api: the same code trained as Ridge, every coefficient pointing the expected way.");
+  await go(`${RIDGE}/ml-api/docs`, "The Ridge set's ml-api: the same code trained as Ridge, every size and quality coefficient pointing the expected way.");
   await swagger("/model-info", "get", { pauseAfter: 5000 });
 
   // 4. App 1

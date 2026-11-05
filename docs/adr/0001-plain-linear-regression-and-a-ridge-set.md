@@ -23,7 +23,7 @@ Neither model's quirks are hidden:
 
 ## Consequences
 
-- The brief is followed literally, and the trade-off can be shown rather than described: the same estimate, what-if or `/model-info` on both hostnames. Ridge gives up about $400 of RMSE for coefficients that all point the expected way.
+- The brief is followed literally, and the trade-off can be shown rather than described: the same estimate, what-if or `/model-info` on both hostnames. Ridge gives up about $400 of RMSE and $2,100 of MAE for size and quality coefficients that all point the expected way. Distance stays positive under both models: it's confounded with size in this data.
 - Features that would mislead under OLS appear only in the Ridge set: the per-feature contribution waterfall (App 1) and the sensitivity line (App 2).
 - Twice the containers. Each service's `-ridge` twin is a few lines of compose, and the image scan and browser tests cover both sets.
 

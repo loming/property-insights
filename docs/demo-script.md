@@ -45,7 +45,7 @@ On https://hsbc.loming.com/ml-api/docs:
 4. **`POST /predict/batch`, example `test_csv`:** the 10 rows of the provided test file, in order. Rows with `index` 5 and 7 come back with warnings.
 5. **A 422:** in `/predict`, change `bedrooms` to `"three"` or add an unknown field. Each error names its field.
 
-Then https://hsbc-ridge.loming.com/ml-api/docs, `GET /model-info`: every coefficient points the expected way, for about $400 more RMSE.
+Then https://hsbc-ridge.loming.com/ml-api/docs, `GET /model-info`: every size and quality coefficient points the expected way, for about $400 more RMSE and $2,100 more MAE. Distance is still positive: it's confounded with size, which Ridge can't fix.
 
 ## 4. App 1, the estimator (5 min)
 
