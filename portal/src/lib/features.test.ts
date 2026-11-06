@@ -3,7 +3,19 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { CURRENT_YEAR, FEATURES } from "./features";
+import { CURRENT_YEAR, FEATURES, warningText } from "./features";
+
+describe("warningText", () => {
+  it("leads with the feature's label when the warning names one", () => {
+    expect(warningText({ field: "bedrooms", message: "Out of range." })).toBe("Bedrooms: Out of range.");
+  });
+
+  it("is just the message when it names no feature, or one the portal doesn't know", () => {
+    expect(warningText({ field: null, message: "Unusual." })).toBe("Unusual.");
+    expect(warningText({ message: "Unusual." })).toBe("Unusual.");
+    expect(warningText({ field: "garage", message: "Unusual." })).toBe("Unusual.");
+  });
+});
 
 const ML_API_FEATURES = path.resolve(import.meta.dirname, "../../../ml-api/src/ml_api/features.py");
 const PATTERN =

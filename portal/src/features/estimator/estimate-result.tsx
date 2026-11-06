@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
-import { FEATURES, FEATURE_BY_NAME, type FeatureName, formatFeatureValue } from "@/lib/features";
+import { FEATURES, formatFeatureValue, warningText } from "@/lib/features";
 
 import { AddToCompareButton } from "./add-to-compare-button";
 import { ContributionChart } from "./contribution-chart";
@@ -56,12 +56,7 @@ export function EstimateResult({
           </p>
           <ul className="mt-1 list-disc space-y-0.5 pl-6">
             {estimate.warnings.map((warning, i) => (
-              <li key={i}>
-                {warning.field && FEATURE_BY_NAME[warning.field as FeatureName]
-                  ? `${FEATURE_BY_NAME[warning.field as FeatureName].label}: `
-                  : ""}
-                {warning.message}
-              </li>
+              <li key={i}>{warningText(warning)}</li>
             ))}
           </ul>
         </div>

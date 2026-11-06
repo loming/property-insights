@@ -95,6 +95,67 @@ test.describe("history and comparison", () => {
     await expect(page.getByRole("heading", { name: "Estimate not found" })).toBeVisible();
   });
 
+  test("colours the highest, middle and lowest values of a row differently", async ({ page, request }) => {
+    const sizes = [1400, 1550, 1700];
+    const ids: string[] = [];
+    for (const square_footage of sizes) {
+      ids.push(await saveEstimate(request, `${RUN} ${square_footage}`, { ...EXAMPLE, square_footage }));
+    }
+
+    await page.goto(`/estimator/compare?ids=${ids.join(",")}`);
+    const row = page.getByRole("table", { name: /The estimates side by side/ }).getByRole("row", { name: /Living area/ });
+    const background = (text: string) =>
+      row.getByRole("cell", { name: text }).evaluate((cell) => getComputedStyle(cell).backgroundColor);
+
+    const [lowest, middle, highest] = await Promise.all(sizes.map((size) => background(size.toLocaleString("en-US"))));
+    expect(new Set([lowest, middle, highest]).size).toBe(3);
+    expect(middle).toBe("rgba(0, 0, 0, 0)");
+    await expect(row.getByRole("cell", { name: "1,700" })).toContainText("Highest");
+    await expect(row.getByRole("cell", { name: "1,400" })).toContainText("Lowest");
+    await expect(row.getByRole("cell", { name: "1,550" })).not.toContainText(/Highest|Lowest/);
+    await expectNoAxeViolations(page);
+
+    // Other specs need theirs to stay on the history's first page of ten.
+    for (const id of ids) {
+      await request.delete(`/estimator-api/api/v1/estimates/${id}`);
+    }
+  });
+
+  test("the history shows a price's warnings on hover and on keyboard focus", async ({ page, request }) => {
+    const label = `${RUN} warned`;
+    await saveEstimate(request, label, { ...EXAMPLE, bedrooms: 20 });
+
+    await page.goto("/estimator/history");
+    const price = page.getByRole("row", { name: label }).getByRole("button", { name: /warning/ });
+    const tooltip = page.getByRole("tooltip");
+    await expect(tooltip).toHaveCount(0);
+
+    await price.hover();
+    await expect(tooltip).toContainText("Bedrooms: Training data covers");
+    await expectNoAxeViolations(page);
+
+    // Escape dismisses it without moving the pointer (WCAG 1.4.13).
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+
+    await page.mouse.move(0, 0);
+    await price.focus();
+    await expect(tooltip).toContainText("Bedrooms: Training data covers");
+  });
+
+  test.describe("on a touch screen", () => {
+    test.use({ hasTouch: true });
+
+    test("a tap shows a price's warnings", async ({ page, request }) => {
+      const label = `${RUN} tapped`;
+      await saveEstimate(request, label, { ...EXAMPLE, bedrooms: 20 });
+
+      await page.goto("/estimator/history");
+      await page.getByRole("row", { name: label }).getByRole("button", { name: /warning/ }).tap();
+      await expect(page.getByRole("tooltip")).toContainText("Bedrooms: Training data covers");
+    });
+  });
+
   test("compares two saved estimates, then deletes one", async ({ page, request }) => {
     const a = `${RUN} A`;
     const b = `${RUN} B`;
