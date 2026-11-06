@@ -48,3 +48,9 @@ export const EXAMPLE_FEATURES = Object.fromEntries(FEATURES.map((f) => [f.name, 
 export function formatFeatureValue(name: string, value: number): string {
   return name === "year_built" ? String(value) : formatNumber(value);
 }
+
+/** A model warning as text, led by the feature it's about when it names one. */
+export function warningText(warning: { field?: string | null; message: string }): string {
+  const feature = warning.field ? FEATURE_BY_NAME[warning.field as FeatureName] : undefined;
+  return feature ? `${feature.label}: ${warning.message}` : warning.message;
+}

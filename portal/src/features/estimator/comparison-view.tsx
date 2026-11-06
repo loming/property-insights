@@ -14,7 +14,8 @@ type Row = { key: string; label: string; unit: string; format: (value: number) =
 
 /**
  * E-5: the estimates in columns. In every row where they differ, the highest and lowest values are
- * marked in words as well as weight; rows that are the same for all say so.
+ * marked in words as well as colour and weight, and the values between them stay plain; rows that are
+ * the same for all say so.
  */
 export function ComparisonView({
   comparison,
@@ -83,13 +84,19 @@ export function ComparisonView({
                         className={cn(
                           "px-3 py-2 tabular-nums",
                           row.key === "predicted_price" && "font-medium",
-                          mark && "bg-accent font-semibold",
+                          mark === "Highest" && "bg-highest font-semibold",
+                          mark === "Lowest" && "bg-lowest font-semibold",
                         )}
                       >
                         {row.format(value)}
                         {row.unit && <span className="font-normal text-muted-foreground"> {row.unit}</span>}
                         {mark && (
-                          <span className="block text-xs font-normal text-muted-foreground">
+                          <span
+                            className={cn(
+                              "block text-xs font-normal",
+                              mark === "Highest" ? "text-highest-foreground" : "text-lowest-foreground",
+                            )}
+                          >
                             <span aria-hidden="true">{mark === "Highest" ? "▲ " : "▼ "}</span>
                             {mark}
                           </span>

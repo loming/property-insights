@@ -31,6 +31,10 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-highest: var(--highest);
+  --color-highest-foreground: var(--highest-foreground);
+  --color-lowest: var(--lowest);
+  --color-lowest-foreground: var(--lowest-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -75,6 +79,11 @@
   --success-foreground: oklch(0.985 0 0);
   --warning: oklch(0.83 0.15 80);
   --warning-foreground: oklch(0.3 0.07 60);
+  /* The comparison's highest and lowest values. Blue and orange: not green and red, because a higher value isn't a better one, and they stay apart with the common colour-vision deficiencies. */
+  --highest: oklch(0.92 0.045 252);
+  --highest-foreground: oklch(0.38 0.11 252);
+  --lowest: oklch(0.92 0.06 62);
+  --lowest-foreground: oklch(0.42 0.11 55);
   --border: oklch(0.922 0 0);
   --input: oklch(0.87 0 0);
   /* Focus rings need 3:1 against their background (WCAG 1.4.11): 4.87:1 on white as it is, but only 2.06:1 at shadcn's ring-ring/50. */
@@ -116,6 +125,10 @@
   --success-foreground: oklch(0.18 0.03 155);
   --warning: oklch(0.8 0.14 80);
   --warning-foreground: oklch(0.22 0.05 60);
+  --highest: oklch(0.33 0.07 252);
+  --highest-foreground: oklch(0.87 0.07 252);
+  --lowest: oklch(0.34 0.06 62);
+  --lowest-foreground: oklch(0.87 0.08 70);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 20%);
   --ring: oklch(0.7 0.12 252);

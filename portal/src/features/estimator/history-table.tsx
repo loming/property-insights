@@ -9,13 +9,47 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFormatters } from "@/hooks/use-formatters";
 import type { Estimate } from "@/lib/api/estimator";
+import { warningText } from "@/lib/features";
 
 import { deleteEstimateAction } from "./actions";
 import { AddToCompareButton } from "./add-to-compare-button";
 import { estimateTitle, homeSummary } from "./estimate-title";
 import { useCompareTray } from "./hooks/use-compare-tray";
+
+/**
+ * A price with the model's warnings behind it. They open on hover and keyboard focus, and on a tap, which
+ * Radix tooltips ignore by themselves: preventDefault stops Radix closing the tooltip on the same click.
+ */
+function WarnedPrice({ price, warnings }: { price: string; warnings: Estimate["warnings"] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={open} onOpenChange={setOpen}>
+      <TooltipTrigger
+        className="inline-flex min-h-6 cursor-help items-center gap-2 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+        onClick={(event) => {
+          event.preventDefault();
+          setOpen(true);
+        }}
+      >
+        {price}
+        <Badge variant="outline" className="border-warning">
+          <TriangleAlert aria-hidden="true" />
+          {warnings.length === 1 ? "1 warning" : `${warnings.length} warnings`}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        <ul className="list-disc space-y-1 pl-4">
+          {warnings.map((warning, i) => (
+            <li key={i}>{warningText(warning)}</li>
+          ))}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 /**
  * E-4: one page of the history. A deleted row goes at once (useOptimistic) and comes back with a
@@ -82,7 +116,7 @@ export function HistoryTable({ estimates }: { estimates: Estimate[] }) {
           <TableBody>
             {rows.map((estimate) => {
               const title = estimateTitle(estimate);
-              const warnings = estimate.warnings.length;
+              const price = fmt.price(estimate.predicted_price);
               return (
                 <TableRow key={estimate.id}>
                   <TableCell className="px-3 whitespace-normal">
@@ -95,13 +129,7 @@ export function HistoryTable({ estimates }: { estimates: Estimate[] }) {
                     <span className="block text-xs text-muted-foreground">{homeSummary(estimate.features)}</span>
                   </TableCell>
                   <TableCell className="px-3 text-right tabular-nums">
-                    {fmt.price(estimate.predicted_price)}
-                    {warnings > 0 && (
-                      <Badge variant="outline" className="ml-2 border-warning">
-                        <TriangleAlert aria-hidden="true" />
-                        {warnings === 1 ? "1 warning" : `${warnings} warnings`}
-                      </Badge>
-                    )}
+                    {estimate.warnings.length > 0 ? <WarnedPrice price={price} warnings={estimate.warnings} /> : price}
                   </TableCell>
                   <TableCell className="px-3 text-muted-foreground">
                     <DateTime iso={estimate.created_at} />

@@ -13,7 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { useFormatters } from "@/hooks/use-formatters";
 import { useUrlState } from "@/hooks/use-url-state";
 import type { HomeFeatures, MarketModelInfo, ModelWarning } from "@/lib/api/market";
-import { FEATURE_BY_NAME, FEATURES, type FeatureName, formatFeatureValue } from "@/lib/features";
+import { FEATURE_BY_NAME, FEATURES, type FeatureName, formatFeatureValue, warningText } from "@/lib/features";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -118,10 +118,7 @@ function Warnings({ warnings }: { warnings: ModelWarning[] }) {
       </p>
       <ul className="mt-1 list-disc space-y-0.5 pl-6">
         {unique.map((w) => (
-          <li key={`${w.code}:${w.field}`}>
-            {w.field && FEATURE_BY_NAME[w.field as FeatureName] ? `${FEATURE_BY_NAME[w.field as FeatureName].label}: ` : ""}
-            {w.message}
-          </li>
+          <li key={`${w.code}:${w.field}`}>{warningText(w)}</li>
         ))}
       </ul>
       {unusual && (
